@@ -33,7 +33,7 @@
 
 ## Introduction - Context
 
-A very popular technique in Machine Learning is to maximise the likelihood of the considered model through SGD (stochastic gradient descent), which is gradient descent (applied to minus the likelihood) with the true gradient replaced by an unbiased estimate. The following paper presents a novel method to obtain unbiased estimates of gradient for latent variable models: http://proceedings.mlr.press/v130/shi21d.html. The objective of this project is to reproduce their first numerical experiment, and compare their two estimators (based on either the simple term estimate, or the Russian roulette one) with IWAE (which is biased).
+A very popular technique in Machine Learning is to maximize the likelihood of the considered model through SGD (stochastic gradient descent), which is gradient descent (applied to minus the likelihood) with the true gradient replaced by an unbiased estimate. The following paper presents a novel method to obtain unbiased estimates of gradient for latent variable models: [lien vers l'article](http://proceedings.mlr.press/v130/shi21d.html). The objective of this project is to reproduce their first numerical experiment, and compare their two estimators (based on either the simple term estimate, or the Russian roulette one) with IWAE (which is biased).
 
 ## Structure
 
