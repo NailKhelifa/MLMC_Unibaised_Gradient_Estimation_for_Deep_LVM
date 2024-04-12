@@ -1,5 +1,5 @@
 
-<h1 align="center"> Projet de Simulation and Monte Carlo Methods à l'ENSAE Paris </h1> <br>
+<h1 align="center"> Projet de Simulation and Monte Carlo Methods </h1> <br>
 <p align="center">
   <a href="https://github.com/NailKhelifa/MLMC_Unibaised_Gradient_Estimation_for_Deep_LVM">
     <img src="https://upload.wikimedia.org/wikipedia/commons/e/ec/LOGO-ENSAE.png" alt="Logo" width="400" height="400">
