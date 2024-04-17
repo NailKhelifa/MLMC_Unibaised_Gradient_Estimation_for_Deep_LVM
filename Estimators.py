@@ -154,16 +154,16 @@ class Estimators:
     
     def ML_RR(self):
 
-        z_sample_odd = [self.z_sample[2*i+1] for i in range((self.sample_size+1)//2 + 1)]
-        z_sample_even = [self.z_sample[2*i] for i in range(self.sample_size//2 + 1)]
+        z_sample_odd = self.z_sample[1::2]
+        z_sample_even = self.z_sample[::2]
         Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), z_sample_even[:2**(k)+1]))
 
         return self.roulette_russe(Delta)
 
     def ML_SS(self):
 
-        z_sample_odd = [self.z_sample[2*i+1] for i in range((self.sample_size+1)//2 + 1)]
-        z_sample_even = [self.z_sample[2*i] for i in range(self.sample_size//2 + 1)]
+        z_sample_odd = self.z_sample[1::2]
+        z_sample_even = self.z_sample[::2]
         Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), z_sample_even[:2**(k)+1]))
 
         return self.single_sample(Delta)
