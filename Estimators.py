@@ -1,6 +1,11 @@
 
 import numpy as np 
 
+def IWAE(k): 
+
+    ## Définir hors de la classe : Générer plusieurs échantillons de z 1:k sous q(z/x), calculer log(1/k*sum(w 1:k)) et moyenner pour obtenir IWAE
+
+    return 
 
 class Estimators: 
 
@@ -36,6 +41,7 @@ class Estimators:
         self.theta = theta
         self.phi = phi
         self.x = x
+        self.I_0 = np.mean(self.l_hat(1, z) for z in self.z_sample)
 
     def weight(x, z):
         '''
@@ -62,7 +68,7 @@ class Estimators:
         '''
         ---------------------------------------------------------------------------------------------------------------------
         IDEA: compute the biaised estimate of the log-likelihood l_theta(x) that we will later use to build our estimators. 
-              Theoretically, l_hat is defined as : 1/len(z_sample) * ( w_1 + ... + w_len(z_sample) )
+              Theoretically, l_hat is defined as : log(1/len(z_sample) * (w_1 + ... + w_len(z_sample)))
         ---------------------------------------------------------------------------------------------------------------------
 
         ---------------------------------------------------------------------------------------------------------------------
@@ -83,18 +89,8 @@ class Estimators:
         
         '''
         return np.log((1/k * sum(weight(self.x, z[i]) for i in range(1, k+ 1))))
-
     
-    def IAWE(self): 
-
-        ## ??
-
-        return 
-    
-    
-    def roulette_russe(self, I_0, Delta):
-
-        ## prendre I_0 = 0 ??
+    def roulette_russe(self, Delta):
 
         '''
         ---------------------------------------------------------------------------------------------------------------------
@@ -113,17 +109,15 @@ class Estimators:
         '''
         ## !! k ranges between 0 and K included 
 
-        ## !! we divide by P(K≥k) = (1 - r)**k when K~Geom(r)
+        ## !! we divide by P(K≥k) = (1 - r)**k-1 when K~Geom(r)
 
         K = np.random.geometric(p=self.r, size=1)[0] # integer ; drawn according to a Geom(r) distribution 
                                                 # corresponds to the number of terms in the sum
 
-        return I_0 + sum(Delta(k)/((1-self.r)**k) for k in range(K + 1)) 
+        return self.I_0 + sum([Delta(0)] + [Delta(k)/((1-self.r)**(k-1)) for k in range(1,K + 1)])
     
 
-    def single_sample(self, I_0, Delta):
-
-        ## prendre I_0 = 0 ?? 
+    def single_sample(self, Delta):
 
         '''
         ---------------------------------------------------------------------------------------------------------------------
@@ -143,10 +137,10 @@ class Estimators:
 
         K = np.random.geometric(p=self.r, size=1)[0]
 
-        return I_0 + Delta/((1-self.r)**(K-1))*self.r
+        return self.I_0 + Delta(K)/(((1-self.r)**(K-1))*self.r)
 
 
-    def SUMO(self, I_0):
+    def SUMO(self):
 
         ## que faire de I_0 ?
 
@@ -154,8 +148,25 @@ class Estimators:
         ## un truc bizarre avec mon code (ci-dessous) au niveau du choix du z --> on prend pour chaque delta_k que les k+2 
         ## et k+1 premier éléments de notre échantillon ?
 
-        Delta = lambda k: self.l_hat(k+2, self.z_sample[:k+2]) - self.l_hat(k+1, self.z_sample[:k+1])  
+        Delta = lambda k: self.l_hat(k+2, self.z_sample[:k+3]) - self.l_hat(k+1, self.z_sample[:k+2])  
 
-        return self.roulette_russe(I_0, Delta=Delta)
+        return self.roulette_russe(self.I_0, Delta)
+    
+    def ML_RR(self):
+
+        z_sample_odd = [self.z_sample[2*i+1] for i in range((self.sample_size+1)//2 + 1)]
+        z_sample_even = [self.z_sample[2*i] for i in range(self.sample_size//2 + 1)]
+        Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), self.z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), self.z_sample_even[:2**(k)+1]))
+
+        return self.roulette_russe(Delta)
+
+    def ML_SS(self):
+
+        z_sample_odd = [self.z_sample[2*i+1] for i in range((self.sample_size+1)//2 + 1)]
+        z_sample_even = [self.z_sample[2*i] for i in range(self.sample_size//2 + 1)]
+        Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), self.z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), self.z_sample_even[:2**(k)+1]))
+
+        return self.single_sample(Delta)
+
     
     
