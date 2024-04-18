@@ -139,8 +139,11 @@ class gradient_estimators:
 
         return self.I_0 + Delta(K)/(((1-self.r)**(K-1))*self.r)
 
-    def likelihood_gradient(self):
-        
+    def likelihood_gradient(self, x, z):
+
+        l = np.log(joint_probability(x, z, self.theta))
+
+        return 
 
     def log_likelihood_SUMO(self):
 
