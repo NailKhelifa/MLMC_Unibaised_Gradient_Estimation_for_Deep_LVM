@@ -1,13 +1,6 @@
-
 import numpy as np 
 
-def IWAE(k): 
-
-    ## Définir hors de la classe : Générer plusieurs échantillons de z 1:k sous q(z/x), calculer log(1/k*sum(w 1:k)) et moyenner pour obtenir IWAE
-
-    return 
-
-class Estimators: 
+class gradient_estimators: 
 
     '''
     ================================================================================================================================
@@ -35,8 +28,10 @@ class Estimators:
     =================================================================================================================================
     '''
 
-    def __init__(self, z_sample, theta, phi, x):
+    def __init__(self, z_sample, z_sample_odd, z_sample_even, theta, phi, x):
         self.z_sample = z_sample
+        self.z_sample_odd = z_sample_odd
+        self.z_sample_even = z_sample_even
         self.sample_size = len(z_sample)
         self.theta = theta
         self.phi = phi
@@ -64,11 +59,12 @@ class Estimators:
         return joint_probability(x, z, theta)/encoder(phi, z, x) ## changer les noms des routines si c'est pas leur bon nom
     
 
-    def l_hat(self, k, z): 
+    def SNIS(self, phi, z_sample): 
         '''
         ---------------------------------------------------------------------------------------------------------------------
-        IDEA: compute the biaised estimate of the log-likelihood l_theta(x) that we will later use to build our estimators. 
-              Theoretically, l_hat is defined as : log(1/len(z_sample) * (w_1 + ... + w_len(z_sample)))
+        IDEA: compute the Self-Normalized Importance Sampling (SNIS) estimator of π[phi] that we will later use to build our 
+              of the gradient estimators. Theoretically, SNIS is defined as : 
+              (w_hat_1 * phi(z_1) + w_hat_2 * phi(z_2) + ... + w_hat_n * phi(z_n)
         ---------------------------------------------------------------------------------------------------------------------
 
         ---------------------------------------------------------------------------------------------------------------------
@@ -76,7 +72,7 @@ class Estimators:
 
         - k: integer; corresponding to the number of terms in the sum (or, equivalently, to the size of the samples)
 
-        - z: np.array of shape (1, k); corresponding to an i.i.d k-sample according to the encoder's distribution
+        - z_sample: np.array of shape (1, k); corresponding to an i.i.d k-sample according to the encoder's distribution
         ---------------------------------------------------------------------------------------------------------------------
 
         ---------------------------------------------------------------------------------------------------------------------
@@ -88,7 +84,11 @@ class Estimators:
         ---------------------------------------------------------------------------------------------------------------------
         
         '''
-        return np.log((1/k * sum(weight(self.x, z[i]) for i in range(1, k+ 1))))
+        w = [weight(x, z[i]) for i in range(len(z_sample))]
+
+        w_bar = [w[i]/sum(w) for i in range(len(z_sample))]
+
+        return sum(w_bar[i] * phi(z_sample[i]) for i in range(len(z_sample)))
     
     def roulette_russe(self, Delta):
 
@@ -139,8 +139,10 @@ class Estimators:
 
         return self.I_0 + Delta(K)/(((1-self.r)**(K-1))*self.r)
 
+    def likelihood_gradient(self):
+        
 
-    def SUMO(self):
+    def log_likelihood_SUMO(self):
 
         ## que faire de I_0 ?
 
@@ -152,21 +154,18 @@ class Estimators:
 
         return self.roulette_russe(self.I_0, Delta)
     
-    def ML_RR(self):
+    def log_likelihood_ML_RR(self):
 
-        z_sample_odd = self.z_sample[1::2]
-        z_sample_even = self.z_sample[::2]
-        Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), z_sample_even[:2**(k)+1]))
+        # z_sample_odd = self.z_sample[1::2]
+        # z_sample_even = self.z_sample[::2]
+        Delta = lambda k: self.SNIS(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.SNIS(2**(k), self.z_sample_odd[:2**(k)+1]) + self.SNIS(2**(k), self.z_sample_even[:2**(k)+1]))
 
         return self.roulette_russe(Delta)
 
-    def ML_SS(self):
+    def log_likelihood_ML_SS(self):
 
-        z_sample_odd = self.z_sample[1::2]
-        z_sample_even = self.z_sample[::2]
-        Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), z_sample_even[:2**(k)+1]))
+        # z_sample_odd = self.z_sample[1::2]
+        # z_sample_even = self.z_sample[::2]
+        Delta = lambda k: self.SNIS(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.SNIS(2**(k), self.z_sample_odd[:2**(k)+1]) + self.SNIS(2**(k), self.z_sample_even[:2**(k)+1]))
 
         return self.single_sample(Delta)
-
-    
-    
