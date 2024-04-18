@@ -139,7 +139,6 @@ class log_likelihood_estimators:
         return self.I_0 + Delta(K)/(((1-self.r)**(K-1))*self.r)
 
 
-
     def log_likelihood_SUMO(self):
 
         ## que faire de I_0 ?
