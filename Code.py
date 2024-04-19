@@ -90,7 +90,7 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     #A, b = noised_params((1/2)*np.eye(dim), (np.zeros(20) + theta_true)/2) ## on récupère les paramètres perturbés
     #Remarque : Dans l'article on ne tire pas avec theta_true mais avec theta_hat
         
-    AX_b = np.dot(noised_A, x) + noised_b
+    AX_b = np.array(np.dot(noised_A, x) + noised_b).T
 
     cov = (2/3) * np.identity(dim) ## on calcule la variance de la normale multivariée associée à l'encodeur
 
