@@ -328,7 +328,7 @@ class Estimateurs:
         ## on se donne d'abord une plage de valeurs pour theta
         theta_min = theta - 5  # Limite inférieure de la plage
         theta_max = theta + 5 # Limite supérieure de la plage
-        num_points = 100  # Nombre de points à générer
+        num_points = 20  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
         SUMO_values = []
@@ -348,7 +348,7 @@ class Estimateurs:
         ## on se donne d'abord une plage de valeurs pour theta
         theta_min = theta_star - 5  # Limite inférieure de la plage
         theta_max = theta_star + 5 # Limite supérieure de la plage
-        num_points = 100  # Nombre de points à générer
+        num_points = 20  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
         ML_RR_values = []
@@ -369,7 +369,7 @@ class Estimateurs:
         ## on se donne d'abord une plage de valeurs pour theta
         theta_min = theta - 5  # Limite inférieure de la plage
         theta_max = theta + 5 # Limite supérieure de la plage
-        num_points = 100  # Nombre de points à générer
+        num_points = 20  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
         ML_SS_values = []
