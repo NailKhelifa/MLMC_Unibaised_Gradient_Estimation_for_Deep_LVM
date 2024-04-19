@@ -413,7 +413,7 @@ class Estimateurs:
 
             for theta in theta_values:
                 estimateur = Estimateurs(self.x, theta, self.r)
-                estimated_likelihood.append(Estimateurs.log_likelihood_SUMO(n_simulations))
+                estimated_likelihood.append(Estimateurs.log_likelihood_SUMO(n_simulations)[1])
 
         elif estimateur == 'ML_RR':
 
@@ -421,7 +421,7 @@ class Estimateurs:
 
             for theta in theta_values:
                 estimateur = Estimateurs(self.x, theta, self.r)
-                estimated_likelihood.append(Estimateurs.log_likelihood_ML_RR(n_simulations))
+                estimated_likelihood.append(Estimateurs.log_likelihood_ML_RR(n_simulations)[1])
 
         elif estimateur == 'ML_SS':
 
@@ -429,7 +429,7 @@ class Estimateurs:
 
             for theta in theta_values:
                 estimateur = Estimateurs(self.x, theta, self.r)
-                estimated_likelihood.append(Estimateurs.log_likelihood_ML_SS(n_simulations))
+                estimated_likelihood.append(Estimateurs.log_likelihood_ML_SS(n_simulations)[1])
 
         true_likelihood_values = [self.true_likelihood(theta) for theta in theta_values]
 
