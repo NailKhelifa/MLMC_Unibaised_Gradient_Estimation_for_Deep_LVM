@@ -242,7 +242,7 @@ class Estimateurs:
             Delta_theta = lambda k: self.l_hat(z_sample_theta[:k+2])[1] - self.l_hat(z_sample_theta[:k+1])[1]
 
             I_0_hat = np.mean([self.l_hat(z)[0] for z in z_sample_hat])
-            I_0_theta = np.mean(s[elf.l_hat(z)[1] for z in z_sample_theta])
+            I_0_theta = np.mean([self.l_hat(z)[1] for z in z_sample_theta])
 
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
             ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
