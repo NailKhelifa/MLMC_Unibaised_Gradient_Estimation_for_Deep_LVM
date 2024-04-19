@@ -81,7 +81,7 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
 
-class log_likelihood_estimators: 
+class Estimators: 
 
     '''
     ================================================================================================================================
@@ -313,8 +313,8 @@ class log_likelihood_estimators:
     def grad_SUMO(self, theta, n_simulations):
 
         ## on se donne d'abord une plage de valeurs pour theta
-        theta_min = theta - 0.5  # Limite inférieure de la plage
-        theta_max = theta + 0.5 # Limite supérieure de la plage
+        theta_min = theta - 5  # Limite inférieure de la plage
+        theta_max = theta + 5 # Limite supérieure de la plage
         num_points = 100  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
@@ -323,7 +323,7 @@ class log_likelihood_estimators:
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
         for theta_val in theta_values:
 
-            estimateur = log_likelihood_estimators(self.x, theta_val)
+            estimateur = Estimators(self.x, theta_val)
             SUMO_values.append(estimateur.log_likelihood_SUMO(n_simulations)[1])
 
         gradient_SUMO = np.gradient(SUMO_values, theta_values)
@@ -333,8 +333,8 @@ class log_likelihood_estimators:
     def grad_ML_RR(self, theta_star, n_simulations):
 
         ## on se donne d'abord une plage de valeurs pour theta
-        theta_min = theta_star - 0.5  # Limite inférieure de la plage
-        theta_max = theta_star + 0.5 # Limite supérieure de la plage
+        theta_min = theta_star - 5  # Limite inférieure de la plage
+        theta_max = theta_star + 5 # Limite supérieure de la plage
         num_points = 100  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
@@ -343,7 +343,7 @@ class log_likelihood_estimators:
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
         for theta_val in theta_values:
 
-            estimateur = log_likelihood_estimators(self.x, theta_val)
+            estimateur = Estimators(self.x, theta_val)
             ML_RR_values.append(estimateur.log_likelihood_ML_RR(n_simulations)[1])
 
         gradient_ML_RR = np.gradient(ML_RR_values, theta_values)
@@ -354,8 +354,8 @@ class log_likelihood_estimators:
     def grad_ML_SS(self, theta, n_simulations):
 
         ## on se donne d'abord une plage de valeurs pour theta
-        theta_min = theta - 0.5  # Limite inférieure de la plage
-        theta_max = theta + 0.5 # Limite supérieure de la plage
+        theta_min = theta - 5  # Limite inférieure de la plage
+        theta_max = theta + 5 # Limite supérieure de la plage
         num_points = 100  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
@@ -364,9 +364,24 @@ class log_likelihood_estimators:
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
         for theta_val in theta_values:
 
-            estimateur = log_likelihood_estimators(self.x, theta_val)
+            estimateur = Estimators(self.x, theta_val)
             ML_SS_values.append(estimateur.log_likelihood_ML_SS(n_simulations)[1])
 
         gradient_ML_SS = np.gradient(ML_SS_values, theta_values)
 
         return gradient_ML_SS
+    
+
+    ### à compléter
+    def plot_grad(theta, n_simulations, estimateur='SUMO'):
+
+        theta_min = theta - 5  # Limite inférieure de la plage
+        theta_max = theta + 5 # Limite supérieure de la plage
+        num_points = 100  # Nombre de points à générer
+        theta_values = np.linspace(theta_min, theta_max, num_points)
+
+        if estimateur == 'SUMO':
+            theta_values = 
+        elif estimateur == 'ML_RR':
+
+        elif estimateur == 'ML_SS':
