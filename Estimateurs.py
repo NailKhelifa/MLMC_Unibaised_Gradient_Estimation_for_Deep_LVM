@@ -1,6 +1,6 @@
 import numpy as np 
 from scipy.stats import multivariate_normal
-
+import matplotlib.pyplot as plt
 
 
 def joint_probability(theta, dim=20):
@@ -192,6 +192,7 @@ class Estimateurs:
 
         return (l_theta_hat, l_theta)
     
+
     def roulette_russe(self, I_0, Delta, K):
 
         '''
@@ -263,6 +264,7 @@ class Estimateurs:
 
         return (np.mean(SUMO_theta_hat), np.mean(SUMO_theta))
     
+
     def log_likelihood_ML_RR(self, n_simulations):
 
         RR_theta_hat = []
@@ -334,30 +336,32 @@ class Estimateurs:
         SUMO_values = []
 
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
-        for theta_val in theta_values:
+        for i in range(len(theta_values)):
 
-            estimateur = Estimateurs(self.x, theta_val, self.r)
+            estimateur = Estimateurs(self.x, theta_values[i], self.r)
             SUMO_values.append(estimateur.log_likelihood_SUMO(n_simulations)[1])
 
         gradient_SUMO = np.gradient(SUMO_values, theta_values)
 
         return gradient_SUMO
 
+
     def grad_ML_RR(self, theta_star, n_simulations):
 
         ## on se donne d'abord une plage de valeurs pour theta
         theta_min = theta_star - 5  # Limite inférieure de la plage
         theta_max = theta_star + 5 # Limite supérieure de la plage
-        num_points = 20  # Nombre de points à générer
+        num_points = 30  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
         ML_RR_values = []
 
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
-        for theta_val in theta_values:
+        for i in range(len(theta_values)):
 
-            estimateur = Estimateurs(self.x, theta_val, self.r)
+            estimateur = Estimateurs(self.x, theta_values[i], self.r)
             ML_RR_values.append(estimateur.log_likelihood_ML_RR(n_simulations)[1])
+            print("Step: "+str('{:.1f}'.format(100*(i/30)))+"%")
 
         gradient_ML_RR = np.gradient(ML_RR_values, theta_values)
 
@@ -369,32 +373,92 @@ class Estimateurs:
         ## on se donne d'abord une plage de valeurs pour theta
         theta_min = theta - 5  # Limite inférieure de la plage
         theta_max = theta + 5 # Limite supérieure de la plage
-        num_points = 20  # Nombre de points à générer
+        num_points = 30  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
         ML_SS_values = []
 
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
-        for theta_val in theta_values:
+        for i in range(len(theta_values)):
 
-            estimateur = Estimateurs(self.x, theta_val, self.r)
+            estimateur = Estimateurs(self.x, theta_values[i], self.r)
             ML_SS_values.append(estimateur.log_likelihood_ML_SS(n_simulations)[1])
+            print("Step: "+str('{:.1f}'.format(100*(i/30)))+"%")
 
         gradient_ML_SS = np.gradient(ML_SS_values, theta_values)
 
         return gradient_ML_SS
+
+    def true_likelihood(self, theta):
+
+        likelihood = (1/((np.sqrt(2*np.pi)**20))*np.sqrt(2)) - (1/4)*np.sum((self.x - theta)**2)
+
+        return np.log(likelihood)
+
+    def true_grad(self, theta):
+
+        return -0.5 * (self.x - theta*np.ones(20))
     
 
-    ### à compléter
-'''    def plot_grad(theta, n_simulations, estimateur='SUMO'):
+    def plot_likelihood(self, theta_true, n_simulations, estimateur='SUMO'):
 
-        theta_min = theta - 5  # Limite inférieure de la plage
-        theta_max = theta + 5 # Limite supérieure de la plage
+        theta_min = theta_true - 5  # Limite inférieure de la plage
+        theta_max = theta_true + 5 # Limite supérieure de la plage
+        num_points = 30  # Nombre de points à générer
+        theta_values = np.linspace(theta_min, theta_max, num_points)
+
+        if estimateur == 'SUMO':
+
+            estimated_likelihood = []
+
+            for theta in theta_values:
+                estimateur = Estimateurs(self.x, theta, self.r)
+                estimated_likelihood.append(Estimateurs.log_likelihood_SUMO(n_simulations))
+
+        elif estimateur == 'ML_RR':
+
+            estimated_likelihood = []
+
+            for theta in theta_values:
+                estimateur = Estimateurs(self.x, theta, self.r)
+                estimated_likelihood.append(Estimateurs.log_likelihood_ML_RR(n_simulations))
+
+        elif estimateur == 'ML_SS':
+
+            estimated_likelihood = []
+
+            for theta in theta_values:
+                estimateur = Estimateurs(self.x, theta, self.r)
+                estimated_likelihood.append(Estimateurs.log_likelihood_ML_SS(n_simulations))
+
+        true_likelihood_values = [self.true_likelihood(theta) for theta in theta_values]
+
+        plt.plot(theta_values, true_likelihood_values, color='r', label='True likelihood')  
+        plt.scatter(theta_values, estimated_likelihood, color='purple', marker='x', label=estimateur)
+        plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta)))
+        plt.ylim([-200,500])
+        plt.xlabel('Theta')
+        plt.ylabel('Likelihood')
+        plt.title(f'Estimation de la likelihood par {estimateur}')
+        plt.legend(loc='best')
+        plt.show()
+
+
+'''    def plot_grad(self, theta_true, n_simulations, estimateur='SUMO'):
+
+        theta_min = theta_true - 5  # Limite inférieure de la plage
+        theta_max = theta_true + 5 # Limite supérieure de la plage
         num_points = 100  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
         if estimateur == 'SUMO':
-            theta_values = 
-        elif estimateur == 'ML_RR':
+            estimated_grad_values = self.grad_SUMO(theta, n_simulations)
 
-        elif estimateur == 'ML_SS':'''
+        elif estimateur == 'ML_RR':
+            estimated_grad_values = self.grad_ML_RR(theta, n_simulations)
+
+        elif estimateur == 'ML_SS':
+            estimated_grad_values = self.grad_ML_SS(theta_true, n_simulations)
+
+        true_grad_values = [self.true_grad(theta) for theta in theta_values]'''
+
