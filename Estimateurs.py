@@ -443,7 +443,7 @@ class Estimateurs:
         plt.legend(loc='best')
         plt.show()
 
-        return 
+        return true_likelihood_values, estimated_likelihood
 
 '''    def plot_grad(self, theta_true, n_simulations, estimateur='SUMO'):
 
