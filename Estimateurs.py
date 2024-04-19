@@ -400,14 +400,14 @@ class Estimateurs:
         return -0.5 * (self.x - theta*np.ones(20))
     
 
-    def plot_likelihood(self, theta_true, n_simulations, estimateur='SUMO'):
+    def plot_likelihood(self, theta_true, n_simulations, methode='SUMO'):
 
         theta_min = theta_true - 5  # Limite inférieure de la plage
         theta_max = theta_true + 5 # Limite supérieure de la plage
         num_points = 30  # Nombre de points à générer
         theta_values = np.linspace(theta_min, theta_max, num_points)
 
-        if estimateur == 'SUMO':
+        if methode == 'SUMO':
 
             estimated_likelihood = []
 
@@ -415,7 +415,7 @@ class Estimateurs:
                 estimateur = Estimateurs(self.x, theta, self.r)
                 estimated_likelihood.append(estimateur.log_likelihood_SUMO(n_simulations)[1])
 
-        elif estimateur == 'ML_RR':
+        elif methode == 'ML_RR':
 
             estimated_likelihood = []
 
@@ -423,7 +423,7 @@ class Estimateurs:
                 estimateur = Estimateurs(self.x, theta, self.r)
                 estimated_likelihood.append(estimateur.log_likelihood_ML_RR(n_simulations)[1])
 
-        elif estimateur == 'ML_SS':
+        elif methode == 'ML_SS':
 
             estimated_likelihood = []
 
@@ -434,15 +434,16 @@ class Estimateurs:
         true_likelihood_values = [self.true_likelihood(theta) for theta in theta_values]
 
         plt.plot(theta_values, true_likelihood_values, color='r', label='True likelihood')  
-        plt.scatter(theta_values, estimated_likelihood, color='purple', marker='x', label=estimateur)
-        plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta)))
-        plt.ylim([-200,500])
+        plt.scatter(theta_values, estimated_likelihood, color='purple', marker='x', label=methode)
+        plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta_true)))
+        plt.ylim([-300,500])
         plt.xlabel('Theta')
         plt.ylabel('Likelihood')
-        plt.title(f'Estimation de la likelihood par {estimateur}')
+        plt.title(f'Estimation de la likelihood par {methode}')
         plt.legend(loc='best')
         plt.show()
 
+        return 
 
 '''    def plot_grad(self, theta_true, n_simulations, estimateur='SUMO'):
 
