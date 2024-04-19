@@ -79,7 +79,7 @@ def noised_params(A, b, std_dev=0.01, dim=20):
     
     return np.array(noised_A), np.array(noised_b)
 
-def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée generate_encoder(x_sample, A, b, dim=20) --> on a une expression explicite
+def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_encoder(x_sample, A, b, dim=20) --> on a une expression explicite
                                         ## de A et b 
     """
     ---------------------------------------------------------------------------------------------------------------------
@@ -90,13 +90,15 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     #A, b = noised_params((1/2)*np.eye(dim), (np.zeros(20) + theta_true)/2) ## on récupère les paramètres perturbés
     #Remarque : Dans l'article on ne tire pas avec theta_true mais avec theta_hat
         
+    dim = 20
+
     AX_b = np.array(np.dot(noised_A, x) + noised_b).T
 
     cov = (2/3) * np.identity(dim) ## on calcule la variance de la normale multivariée associée à l'encodeur
 
     z_sample = []
 
-    for _ in range(k):
+    for _ in range(2**(k)):
         z_sample.append(np.random.multivariate_normal(AX_b, cov)) ## 2**(k+1) pour ne pas avoir de problèmes avec les échantillons pairs 
                                                                   ## et impairs
         
