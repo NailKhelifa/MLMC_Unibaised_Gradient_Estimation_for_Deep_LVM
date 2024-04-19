@@ -109,10 +109,12 @@ class log_likelihood_estimators:
     =================================================================================================================================
     '''
 
-    def __init__(self, x):
+    def __init__(self, x, theta):
         self.x = x
+        self.theta = theta
         self.theta_hat = self.x.mean(axis=0)
-        self.A, self.b = noised_params((1/2)*np.eye(20), (np.zeros(20) + self.theta_hat)/2)
+        self.A_hat, self.b_hat = noised_params((1/2)*np.eye(20), (np.zeros(20) + self.theta_hat)/2)
+        self.A, self.b = noised_params((1/2)*np.eye(20), (np.zeros(20) + self.theta)/2) ## on ajoute la valeur de A et b pour theta
         # self.I_0 = np.mean(self.l_hat(1, z) for z in self.z_sample)
 
 
@@ -134,7 +136,14 @@ class log_likelihood_estimators:
         ---------------------------------------------------------------------------------------------------------------------
 
         '''
-        return (multivariate_normal.pdf(z, mean=self.theta_hat, cov=np.identity(20)) * multivariate_normal.pdf(self.x, mean=z, cov=np.identity(20))) /  multivariate_normal.pdf(self.x, mean = np.dot(self.x, self.A) + self.b, cov=(2/3)*np.identity(20))
+
+        ## calcul des poids pour theta_hat (associé à l'observation x)
+        weight_theta_hat = multivariate_normal.pdf(z, mean=self.theta_hat, cov=np.identity(20)) * multivariate_normal.pdf(self.x, mean=z, cov=np.identity(20)) /  multivariate_normal.pdf(self.x, mean = np.dot(self.x, self.A_hat) + self.b_hat, cov=(2/3)*np.identity(20))
+
+        ## cacul des poids pour theta (associé à un theta)                                                                                                    
+        weight_theta = multivariate_normal.pdf(z, mean=self.theta, cov=np.identity(20)) * multivariate_normal.pdf(self.x, mean=z, cov=np.identity(20)) /  multivariate_normal.pdf(self.x, mean = np.dot(self.x, self.A) + self.b, cov=(2/3)*np.identity(20))
+        
+        return (weight_theta_hat, weight_theta) ## attention, renvoie un tuple
        
 
     def l_hat(self, z_sample): 
@@ -162,7 +171,13 @@ class log_likelihood_estimators:
         ---------------------------------------------------------------------------------------------------------------------
         '''
 
-        return np.log((1/(len(z_sample)) * sum(self.weight(self.x, z_sample[i]) for i in range(1, len(z_sample)+ 1))))
+        ## calcul de l_theta_hat (pour theta_hat)
+        l_theta_hat = np.log((1/(len(z_sample)) * sum(self.weight(self.x, z_sample[i])[0] for i in range(1, len(z_sample)+ 1))))
+
+        ## calcul de l_theta (pour theta)
+        l_theta = np.log((1/(len(z_sample)) * sum(self.weight(self.x, z_sample[i])[1] for i in range(1, len(z_sample)+ 1))))
+
+        return (l_theta_hat, l_theta)
     
     def roulette_russe(self, I_0, Delta, K):
 
@@ -185,7 +200,7 @@ class log_likelihood_estimators:
         return I_0 + sum([Delta(0)] + [Delta(k)/((1-self.r)**(k-1)) for k in range(1,K + 1)])
     
 
-    def single_sample(self, I_0, Delta):
+    def single_sample(self, I_0, Delta, K):
 
         '''
         ---------------------------------------------------------------------------------------------------------------------
@@ -199,18 +214,17 @@ class log_likelihood_estimators:
         
         - Delta: lambda function to compute the ∆_k such as in the theoretical framework of the paper
 
-        - r: float in (1/2, 1 - 1/(2^(1+a))) where a is such as the conditions in theorem 1 are verified (see paper)
+        - K: integer, sampled according to a law on N (positive integers)
         ---------------------------------------------------------------------------------------------------------------------
         '''
-
-        K = np.random.geometric(p=self.r, size=1)[0]
 
         return I_0 + Delta(K)/(((1-self.r)**(K-1))*self.r)
 
 
     def log_likelihood_SUMO(self, n_simulations):
 
-        SUMO = []
+        SUMO_theta_hat = []
+        SUMO_theta = []
 
         for _ in range(n_simulations):
 
@@ -218,48 +232,141 @@ class log_likelihood_estimators:
             K = np.random.geometric(p=self.r, size=1)[0]
 
             ## K+3 pour avoir de quoi aller jusque K+3
-            z_sample, _, _ = generate_encoder(self.x, K+2, noised_A=self.A, noised_b=self.B)
+            z_sample_hat, _, _ = generate_encoder(self.x, K+2, noised_A=self.A_hat, noised_b=self.b_hat)
+            z_sample_theta, _, _ = generate_encoder(self.x, K+2, noised_A=self.A, noised_b=self.b)
 
             ## erreur 
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
-            Delta = lambda k: self.l_hat(z_sample[:k+2]) - self.l_hat(z_sample[:k+1])  
+            Delta_hat = lambda k: self.l_hat(z_sample_hat[:k+2])[0] - self.l_hat(z_sample_hat[:k+1])[0]  
+            Delta_theta = lambda k: self.l_hat(z_sample_theta[:k+2])[1] - self.l_hat(z_sample_theta[:k+1])[1]
 
-            I_0 = np.mean(self.l_hat(1, z) for z in self.z_sample)
+            I_0_hat = np.mean(self.l_hat(z)[0] for z in self.z_sample_hat)
+            I_0_theta = np.mean(self.l_hat(z)[1] for z in self.z_sample_theta)
 
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
             ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
-            SUMO.append(self.roulette_russe(I_0, Delta, K))
+            SUMO_theta_hat.append(self.roulette_russe(I_0_hat, Delta_hat, K))
+            SUMO_theta.append(self.roulette_russe(I_0_theta, Delta_theta, K))
 
-        return np.mean(SUMO)
+        return (np.mean(SUMO_theta_hat), np.mean(SUMO_theta))
     
     def log_likelihood_ML_RR(self, n_simulations):
 
-        RR = []
+        RR_theta_hat = []
+        RR_theta = []
 
         for _ in range(n_simulations):
 
             K = np.random.geometric(p=self.r, size=1)[0]
 
             ## K+3 pour avoir de quoi aller jusque K+3
-            z_sample, z_sample_odd, z_sample_even = generate_encoder(self.x, K+3, noised_A=self.A, noised_b=self.B)
+            z_sample_hat, z_sample_odd_hat, z_sample_even_hat = generate_encoder(self.x, 2**(K+1), noised_A=self.A_hat, noised_b=self.b_hat)
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(self.x, 2**(K+1), noised_A=self.A, noised_b=self.b)
 
-            ## erreur 
-            ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
-            Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), z_sample_even[:2**(k)+1]))
 
-            I_0 = np.mean(self.l_hat(1, z) for z in self.z_sample)
-            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
-            ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
-            RR.append(self.roulette_russe(I_0, Delta))
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_hat = lambda k: self.l_hat(z_sample_hat[:2**(k+1)+1])[0] - 1/2 * (self.l_hat(z_sample_odd_hat[:2**(k)+1])[0] + self.l_hat(z_sample_even_hat[:2**(k)+1])[0])
+            Delta_theta = lambda k: self.l_hat(z_sample_theta[:2**(k+1)+1])[1] - 1/2 * (self.l_hat(z_sample_odd_theta[:2**(k)+1])[1] + self.l_hat(z_sample_even_theta[:2**(k)+1])[1])
 
-        return np.mean(RR)
 
-    def log_likelihood_ML_SS(self):
+            I_0_hat = np.mean(self.l_hat(z)[0] for z in self.z_sample_hat)
+            I_0_theta = np.mean(self.l_hat(z)[1] for z in self.z_sample_theta)
 
-        z_sample_odd = self.z_sample[1::2]
-        z_sample_even = self.z_sample[::2]
-        Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), z_sample_even[:2**(k)+1]))
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            RR_theta_hat.append(self.roulette_russe(I_0_hat, Delta_hat, K))
+            RR_theta.append(self.roulette_russe(I_0_theta, Delta_theta, K))
 
-        return self.single_sample(Delta)
+        return (np.mean(RR_theta_hat), np.mean(RR_theta))
 
+
+    def log_likelihood_ML_SS(self, n_simulations):
+
+        SS_theta_hat = []
+        SS_theta = []
+
+        for _ in range(n_simulations):
+
+            K = np.random.geometric(p=self.r, size=1)[0]
+
+            ## K+3 pour avoir de quoi aller jusque K+3
+            z_sample_hat, z_sample_odd_hat, z_sample_even_hat = generate_encoder(self.x, 2**(K+1), noised_A=self.A_hat, noised_b=self.b_hat)
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(self.x, 2**(K+1), noised_A=self.A, noised_b=self.b)
+
+
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_hat = lambda k: self.l_hat(z_sample_hat[:2**(k+1)+1])[0] - 1/2 * (self.l_hat(z_sample_odd_hat[:2**(k)+1])[0] + self.l_hat(z_sample_even_hat[:2**(k)+1])[0])
+            Delta_theta = lambda k: self.l_hat(z_sample_theta[:2**(k+1)+1])[1] - 1/2 * (self.l_hat(z_sample_odd_theta[:2**(k)+1])[1] + self.l_hat(z_sample_even_theta[:2**(k)+1])[1])
+
+
+            I_0_hat = np.mean(self.l_hat(z)[0] for z in self.z_sample_hat)
+            I_0_theta = np.mean(self.l_hat(z)[1] for z in self.z_sample_theta)
+
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            SS_theta_hat.append(self.single_sample(I_0_hat, Delta_hat, K))
+            SS_theta.append(self.single_sample(I_0_theta, Delta_theta, K))
+
+        return (np.mean(SS_theta_hat), np.mean(SS_theta))
+
+
+    def grad_SUMO(self, theta, n_simulations):
+
+        ## on se donne d'abord une plage de valeurs pour theta
+        theta_min = theta - 0.5  # Limite inférieure de la plage
+        theta_max = theta + 0.5 # Limite supérieure de la plage
+        num_points = 100  # Nombre de points à générer
+        theta_values = np.linspace(theta_min, theta_max, num_points)
+
+        SUMO_values = []
+
+        ## on caclue les valeurs de SUMO sur cette plage de valeurs
+        for theta_val in theta_values:
+
+            estimateur = log_likelihood_estimators(self.x, theta_val)
+            SUMO_values.append(estimateur.log_likelihood_SUMO(n_simulations)[1])
+
+        gradient_SUMO = np.gradient(SUMO_values, theta_values)
+
+        return gradient_SUMO
+
+    def grad_ML_RR(self, theta_star, n_simulations):
+
+        ## on se donne d'abord une plage de valeurs pour theta
+        theta_min = theta_star - 0.5  # Limite inférieure de la plage
+        theta_max = theta_star + 0.5 # Limite supérieure de la plage
+        num_points = 100  # Nombre de points à générer
+        theta_values = np.linspace(theta_min, theta_max, num_points)
+
+        ML_RR_values = []
+
+        ## on caclue les valeurs de SUMO sur cette plage de valeurs
+        for theta_val in theta_values:
+
+            estimateur = log_likelihood_estimators(self.x, theta_val)
+            ML_RR_values.append(estimateur.log_likelihood_ML_RR(n_simulations)[1])
+
+        gradient_ML_RR = np.gradient(ML_RR_values, theta_values)
+
+        return gradient_ML_RR
     
+
+    def grad_ML_SS(self, theta, n_simulations):
+
+        ## on se donne d'abord une plage de valeurs pour theta
+        theta_min = theta - 0.5  # Limite inférieure de la plage
+        theta_max = theta + 0.5 # Limite supérieure de la plage
+        num_points = 100  # Nombre de points à générer
+        theta_values = np.linspace(theta_min, theta_max, num_points)
+
+        ML_SS_values = []
+
+        ## on caclue les valeurs de SUMO sur cette plage de valeurs
+        for theta_val in theta_values:
+
+            estimateur = log_likelihood_estimators(self.x, theta_val)
+            ML_SS_values.append(estimateur.log_likelihood_ML_SS(n_simulations)[1])
+
+        gradient_ML_SS = np.gradient(ML_SS_values, theta_values)
+
+        return gradient_ML_SS

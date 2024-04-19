@@ -166,5 +166,9 @@ class log_likelihood_estimators:
         Delta = lambda k: self.l_hat(2**(k+1), self.z_sample[:2**(k+1)+1]) - 1/2 * (self.l_hat(2**(k), z_sample_odd[:2**(k)+1]) + self.l_hat(2**(k), z_sample_even[:2**(k)+1]))
 
         return self.single_sample(Delta)
+    
+    def grad_SUMO(self):
+
+        
 
     
