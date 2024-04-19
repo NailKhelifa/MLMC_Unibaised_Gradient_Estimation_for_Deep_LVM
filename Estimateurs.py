@@ -56,7 +56,7 @@ def noised_params(A, b, std_dev=0.01, dim=20):
     # Perturber chaque composante de b
     noised_b = b + np.random.normal(loc=0, scale=std_dev, size=dim)
     
-    return noised_A, noised_b
+    return np.array(noised_A), np.array(noised_b)
 
 def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée generate_encoder(x_sample, A, b, dim=20) --> on a une expression explicite
                                         ## de A et b 
@@ -78,20 +78,15 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     z_even = z_sample[::2]
 
     ## POUR
-    return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
+    return z_sample.T , z_odd.T, z_even.T #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
 def compute_ratio(x, z, theta, A, b):
     # Parameters
     I = np.eye(20)
 
-    # Distribution parameters
-    p_theta_x = np.random.multivariate_normal(theta, 2*I)
-    p_theta_z_given_x = np.random.multivariate_normal((theta + x)/2, 0.5*I)
-    q_phi_z_given_x = np.random.multivariate_normal(np.dot(A, x) + b.flatten(), (2/3)*I)
-
     # Probability densities
     p_theta_xz = np.exp(-0.5 * np.dot(np.dot((z - theta).T, np.linalg.inv(2*I)), (z - theta)) - 0.5 * np.dot(np.dot((x - z).T, np.linalg.inv(I)), (x - z)))
-    q_phi_z_given_x_density = np.exp(-0.5 * np.dot(np.dot((z - (np.dot(A, x) + b.flatten())).T, np.linalg.inv((2/3)*I)), (z - (np.dot(A, x) + b.flatten()))))
+    q_phi_z_given_x_density = np.exp(-0.5 * np.dot(np.dot((z - (np.dot(A, x) + b)).T, np.linalg.inv((2/3)*I)), (z - (np.dot(A, x) + b.flatten()))))
 
     # Compute the ratio
     ratio = p_theta_xz / q_phi_z_given_x_density
@@ -154,10 +149,7 @@ class Estimateurs:
         ---------------------------------------------------------------------------------------------------------------------
 
         '''
-
-        AX_b_hat = np.dot(self.x, self.A_hat.T) + self.b_hat
-        AX_b = np.dot(self.x, self.A.T) + self.b
-
+        
         ## calcul des poids pour theta_hat (associé à l'observation x)
         weight_theta_hat = compute_ratio(self.x, z, self.theta_hat, self.A_hat, self.b_hat)
 
