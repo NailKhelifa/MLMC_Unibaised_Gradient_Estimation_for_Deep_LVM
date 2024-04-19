@@ -323,7 +323,7 @@ class Estimateurs:
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
         for theta_val in theta_values:
 
-            estimateur = Estimators(self.x, theta_val)
+            estimateur = Estimateurs(self.x, theta_val)
             SUMO_values.append(estimateur.log_likelihood_SUMO(n_simulations)[1])
 
         gradient_SUMO = np.gradient(SUMO_values, theta_values)
@@ -343,7 +343,7 @@ class Estimateurs:
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
         for theta_val in theta_values:
 
-            estimateur = Estimators(self.x, theta_val)
+            estimateur = Estimateurs(self.x, theta_val)
             ML_RR_values.append(estimateur.log_likelihood_ML_RR(n_simulations)[1])
 
         gradient_ML_RR = np.gradient(ML_RR_values, theta_values)
@@ -364,7 +364,7 @@ class Estimateurs:
         ## on caclue les valeurs de SUMO sur cette plage de valeurs
         for theta_val in theta_values:
 
-            estimateur = Estimators(self.x, theta_val)
+            estimateur = Estimateurs(self.x, theta_val)
             ML_SS_values.append(estimateur.log_likelihood_ML_SS(n_simulations)[1])
 
         gradient_ML_SS = np.gradient(ML_SS_values, theta_values)
