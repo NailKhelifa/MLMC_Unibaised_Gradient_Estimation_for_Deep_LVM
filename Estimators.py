@@ -22,10 +22,10 @@ def joint_probability(theta, dim=20):
     ---------------------------------------------------------------------------------------------------------------------
     """
     # Génère un échantillon Z = (Z_1,...,Z_size) suivant la loi marginale précisée dans l'article
-    z = np.random.multivariate_normal(np.zeros(dim) + theta, np.identity(dim), size=1)
+    z = np.random.multivariate_normal(np.zeros(dim) + theta*np.ones(20), np.identity(dim))
 
     # Génère l'échantillon X = (X_1,...,X_20) suivant la loi conditionnelle à Z :  N(x | z, Id)
-    x = np.random.multivariate_normal(z, np.eye(dim), size=1)
+    x = np.random.multivariate_normal(z, np.eye(dim))
 
     return x, z
 
