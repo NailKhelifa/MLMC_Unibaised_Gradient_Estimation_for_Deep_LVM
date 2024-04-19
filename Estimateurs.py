@@ -78,7 +78,7 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     z_even = z_sample[::2]
 
     ## POUR
-    return z_sample.T , z_odd.T, z_even.T #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
+    return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
 def compute_ratio(x, z, theta, A, b):
     # Parameters
@@ -185,10 +185,10 @@ class Estimateurs:
         '''
 
         ## calcul de l_theta_hat (pour theta_hat)
-        l_theta_hat = np.log((1/(len(z_sample)) * sum(self.weight(z_val)[0] for z_val in z_sample)))
+        l_theta_hat = np.log((1/(len(z_sample)) * sum(self.weight(z_sample[i])[0] for i in range(len(z_sample)))))
 
         ## calcul de l_theta (pour theta)
-        l_theta = np.log((1/(len(z_sample)) * sum(self.weight(z_val)[1] for z_val in z_sample)))
+        l_theta = np.log((1/(len(z_sample)) * sum(self.weight(z_sample[i])[1] for i in range(len(z_sample)))))
 
         return (l_theta_hat, l_theta)
     
