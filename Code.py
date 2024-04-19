@@ -94,8 +94,12 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
 
     cov = (2/3) * np.identity(dim) ## on calcule la variance de la normale multivariée associée à l'encodeur
 
-    z_sample = np.random.multivariate_normal(AX_b, cov, size=2*(k+1))  ## 2**(k+1) pour ne pas avoir de problèmes avec les échantillons pairs 
-                                                                       ## et impairs
+    z_sample = []
+
+    for _ in range(k):
+        z_sample.append(np.random.multivariate_normal(AX_b, cov)) ## 2**(k+1) pour ne pas avoir de problèmes avec les échantillons pairs 
+                                                                  ## et impairs
+        
     z_odd = z_sample[1::2]
     z_even = z_sample[::2]
 
@@ -181,10 +185,11 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     with tqdm(total=n_simulations) as pbar:
         
         for _ in range(n_simulations):
+
             K = np.random.geometric(p=r)
 
             ## K+3 pour avoir de quoi aller jusque K+3
-            z_sample_theta, _, _ = generate_encoder(x, K, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+            z_sample_theta, _, _ = generate_encoder(x, K+2, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
                                                                               ## ce qui est plus grand que prévu, il faut slicer correctement
 
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
@@ -207,25 +212,28 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
     RR = []
 
-    for _ in range(n_simulations):
+    with tqdm(total=n_simulations) as pbar:
 
-        K = np.random.geometric(p=r)
+        for _ in range(n_simulations):
 
-        ## K+3 pour avoir de quoi aller jusque K+3
-        z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, 2**(K+1), noised_A, noised_b)
+            K = np.random.geometric(p=r)
 
-        weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
-        weights_array_odd = weights_array[1::2]
-        weights_array_even = weights_array[::2]
+            ## K+3 pour avoir de quoi aller jusque K+3
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, 2**(K+1), noised_A, noised_b)
 
-        I_0 = np.mean([np.log(weights_array)])
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
 
-        ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
-        Delta_theta = lambda k: l_hat(z_sample_theta[:2**(k+1)+1])[1] - 1/2 * (self.l_hat(z_sample_odd_theta[:2**(k)+1])[1] + self.l_hat(z_sample_even_theta[:2**(k)+1])[1])
+            weights_array_odd = np.log(weights_array[1::2])
+            weights_array_even = np.log(weights_array[::2])
 
-        ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
-        ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
-        RR.append(roulette_russe(I_0, Delta_theta, K))
+            I_0 = np.mean([np.log(weights_array)])
+
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_theta = lambda j: np.log(np.mean(weights_array)) - 0.5 * (np.log)
+
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            RR.append(roulette_russe(I_0, Delta_theta, K))
 
     return np.mean(RR)
 
