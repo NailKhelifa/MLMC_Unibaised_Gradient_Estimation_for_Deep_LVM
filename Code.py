@@ -81,17 +81,20 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
 def weights(x, z_sample, theta, A, b):
+
+    dimension = 20
+
     # Parameters
     AX_b = np.dot(A, x) + b
-    I = np.eye(20)
-
+    I = np.eye(dimension)
+    theta_mean = theta*np.ones(dimension)
     weights = []
     
     for z in z_sample:
 
         # Probability densities
         q_phi_z_given_x_density = multivariate_normal.pdf(z, mean=AX_b, cov=(2/3)*I)
-        p_theta_xz = multivariate_normal.pdf(z, mean=theta, cov=I)*multivariate_normal.pdf(x, mean=z, cov=I)
+        p_theta_xz = multivariate_normal.pdf(z, mean=theta_mean, cov=I)*multivariate_normal.pdf(x, mean=z, cov=I)
 
         weights.append(p_theta_xz / q_phi_z_given_x_density)
 
