@@ -109,9 +109,10 @@ class Estimateurs:
     =================================================================================================================================
     '''
 
-    def __init__(self, x, theta):
+    def __init__(self, x, theta, r):
         self.x = x
         self.theta = theta
+        self.r
         self.theta_hat = self.x.mean(axis=0)
         self.A_hat, self.b_hat = noised_params((1/2)*np.eye(20), (np.zeros(20) + self.theta_hat)/2)
         self.A, self.b = noised_params((1/2)*np.eye(20), (np.zeros(20) + self.theta)/2) ## on ajoute la valeur de A et b pour theta
