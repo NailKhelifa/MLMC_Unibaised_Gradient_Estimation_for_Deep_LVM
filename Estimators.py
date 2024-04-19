@@ -373,7 +373,7 @@ class Estimators:
     
 
     ### à compléter
-    def plot_grad(theta, n_simulations, estimateur='SUMO'):
+'''    def plot_grad(theta, n_simulations, estimateur='SUMO'):
 
         theta_min = theta - 5  # Limite inférieure de la plage
         theta_max = theta + 5 # Limite supérieure de la plage
@@ -384,4 +384,4 @@ class Estimators:
             theta_values = 
         elif estimateur == 'ML_RR':
 
-        elif estimateur == 'ML_SS':
+        elif estimateur == 'ML_SS':'''
