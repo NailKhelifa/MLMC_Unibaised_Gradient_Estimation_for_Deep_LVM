@@ -62,20 +62,8 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
                                         ## de A et b 
     """
     ---------------------------------------------------------------------------------------------------------------------
-    IDÉE : Génère un échantillon i.i.d. z_sample selon la loi N(Ax + b, 2/3 * I) dans R^20, à partir d'un échantillon i.i.d. 
-           x_sample.
-    ---------------------------------------------------------------------------------------------------------------------
-
-    ---------------------------------------------------------------------------------------------------------------------
-    ARGUMENTS :
-
-    - x : Échantillon i.i.d. dans R^20
-    - k : taille de l'échantillon que l'on veut tirer 
-    ---------------------------------------------------------------------------------------------------------------------
-
-    ---------------------------------------------------------------------------------------------------------------------
-    OUTPUTS :
-    - Échantillon i.i.d. z_sample selon la loi N(Ax + b, 2/3 * I) dans R^20
+    IDÉE : Génère un échantillon i.i.d. z_sample de taille k selon la loi N(noised_Ax + noised_b, 2/3 * I) dans R^20, à 
+           partir d'un échantillon i.i.d. x_sample.
     ---------------------------------------------------------------------------------------------------------------------
     """
     #A, b = noised_params((1/2)*np.eye(dim), (np.zeros(20) + theta_true)/2) ## on récupère les paramètres perturbés
@@ -86,8 +74,8 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     cov = (2/3) * np.identity(dim) ## on calcule la variance de la normale multivariée associée à l'encodeur
 
     z_sample = np.random.multivariate_normal(AX_b, cov, size=k)
-    z_odd = z[1::2]
-    z_even = z[::2]
+    z_odd = z_sample[1::2]
+    z_even = z_sample[::2]
 
     ## POUR
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
@@ -146,10 +134,11 @@ class log_likelihood_estimators:
         ---------------------------------------------------------------------------------------------------------------------
 
         '''
-        return (multivariate_normal.pdf(z, mean=self.theta_hat, cov=np.identity(20)) * multivariate_normal.pdf(x, mean=z, cov=np.identity(20))) /  multivariate_normal.pdf(self.x, mean = np.dot(self.x, self.A) + self.b, cov=(2/3)*np.identity(20))
+        return (multivariate_normal.pdf(z, mean=self.theta_hat, cov=np.identity(20)) * multivariate_normal.pdf(self.x, mean=z, cov=np.identity(20))) /  multivariate_normal.pdf(self.x, mean = np.dot(self.x, self.A) + self.b, cov=(2/3)*np.identity(20))
        
 
     def l_hat(self, z_sample): 
+
         '''
         ---------------------------------------------------------------------------------------------------------------------
         IDEA: compute the biaised estimate of the log-likelihood l_theta(x) that we will later use to build our estimators. 
@@ -175,7 +164,7 @@ class log_likelihood_estimators:
 
         return np.log((1/(len(z_sample)) * sum(self.weight(self.x, z_sample[i]) for i in range(1, len(z_sample)+ 1))))
     
-    def roulette_russe(self, I_0, Delta):
+    def roulette_russe(self, I_0, Delta, K):
 
         '''
         ---------------------------------------------------------------------------------------------------------------------
@@ -189,15 +178,9 @@ class log_likelihood_estimators:
         
         - Delta: lambda function to compute the ∆_k such as in the theoretical framework of the paper
 
-        - r: float in (1/2, 1 - 1/(2^(1+a))) where a is such as the conditions in theorem 1 are verified (see paper)
+        - K: integer, sampled according to a law on N (positive integers)
         ---------------------------------------------------------------------------------------------------------------------
         '''
-        ## !! k ranges between 0 and K included 
-
-        ## !! we divide by P(K≥k) = (1 - r)**k-1 when K~Geom(r)
-
-        K = np.random.geometric(p=self.r, size=1)[0] # integer ; drawn according to a Geom(r) distribution 
-                                                # corresponds to the number of terms in the sum
 
         return I_0 + sum([Delta(0)] + [Delta(k)/((1-self.r)**(k-1)) for k in range(1,K + 1)])
     
@@ -235,16 +218,17 @@ class log_likelihood_estimators:
             K = np.random.geometric(p=self.r, size=1)[0]
 
             ## K+3 pour avoir de quoi aller jusque K+3
-            z_sample, _, _ = generate_encoder(self.x, K+3, noised_A=self.A, noised_b=self.B)
+            z_sample, _, _ = generate_encoder(self.x, K+2, noised_A=self.A, noised_b=self.B)
 
             ## erreur 
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
-            Delta = lambda k: self.l_hat(z_sample[:k+3]) - self.l_hat(z_sample[:k+2])  
+            Delta = lambda k: self.l_hat(z_sample[:k+2]) - self.l_hat(z_sample[:k+1])  
 
             I_0 = np.mean(self.l_hat(1, z) for z in self.z_sample)
+
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
             ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
-            SUMO.append(self.roulette_russe(I_0, Delta))
+            SUMO.append(self.roulette_russe(I_0, Delta, K))
 
         return np.mean(SUMO)
     
