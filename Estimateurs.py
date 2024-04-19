@@ -173,10 +173,10 @@ class Estimateurs:
         '''
 
         ## calcul de l_theta_hat (pour theta_hat)
-        l_theta_hat = np.log((1/(len(z_sample)) * sum(self.weight(self.x, z_sample[i])[0] for i in range(1, len(z_sample)+ 1))))
+        l_theta_hat = np.log((1/(len(z_sample)) * sum(self.weight(z_sample[i])[0] for i in range(1, len(z_sample)+ 1))))
 
         ## calcul de l_theta (pour theta)
-        l_theta = np.log((1/(len(z_sample)) * sum(self.weight(self.x, z_sample[i])[1] for i in range(1, len(z_sample)+ 1))))
+        l_theta = np.log((1/(len(z_sample)) * sum(self.weight(z_sample[i])[1] for i in range(1, len(z_sample)+ 1))))
 
         return (l_theta_hat, l_theta)
     
