@@ -159,7 +159,7 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
 
         weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
             
-        I_0 = weights_array.mean()
+        I_0 = np.mean([weights_array])
     
         ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
         Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
