@@ -121,7 +121,6 @@ def roulette_russe(r, I_0, Delta, K):
 
     return I_0 + sum(Delta(k)/((1-r)**(k)) for k in range(1,K))
 
-
 def single_sample(r, I_0, Delta, K):
 
     '''
@@ -142,10 +141,6 @@ def single_sample(r, I_0, Delta, K):
 
     return I_0 + Delta(K)/(((1-r)**(K-1))*r)
     
-'''def l_hat(weights_array):'''
-
-
-
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     
     SUMO_theta = []
@@ -159,13 +154,39 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
 
         weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
             
-        I_0 = np.mean([weights_array])
+        I_0 = np.mean([np.log(weights_array)])
     
         ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
         Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
-
 
         ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
         ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
         SUMO_theta.append(roulette_russe(I_0, Delta_theta, K))
 
+    return np.mean(SUMO_theta)
+
+def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
+
+    RR = []
+
+    for _ in range(n_simulations):
+
+        K = np.random.geometric(p=r)
+
+        ## K+3 pour avoir de quoi aller jusque K+3
+        z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, 2**(K+1), noised_A, noised_b)
+
+        weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+        weights_array_odd = weights_array[1::2]
+        weights_array_even = weights_array[::2]
+
+        I_0 = np.mean([np.log(weights_array)])
+
+        ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+        Delta_theta = lambda k: l_hat(z_sample_theta[:2**(k+1)+1])[1] - 1/2 * (self.l_hat(z_sample_odd_theta[:2**(k)+1])[1] + self.l_hat(z_sample_even_theta[:2**(k)+1])[1])
+
+        ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+        ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+        RR.append(roulette_russe(I_0, Delta_theta, K))
+
+    return np.mean(RR)
