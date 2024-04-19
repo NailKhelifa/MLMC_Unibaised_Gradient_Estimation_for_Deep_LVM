@@ -185,7 +185,7 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
 
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
             ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
-            SUMO_theta.append(roulette_russe(I_0, Delta_theta, K))
+            SUMO_theta.append(roulette_russe(r, I_0, Delta_theta, K))
 
             pbar.update(1)  # Update the progress bar
 
