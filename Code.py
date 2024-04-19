@@ -217,3 +217,62 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
         RR.append(roulette_russe(I_0, Delta_theta, K))
 
     return np.mean(RR)
+
+
+def true_likelihood(x, theta):
+
+    likelihood = (1/((np.sqrt(2*np.pi)**20)*np.sqrt(2))) * np.exp(-(1/4)*np.sum((x - theta)**2))
+
+    return np.log(likelihood)
+
+def true_grad(x, theta):
+
+    return -0.5 * (x - theta*np.ones(20))
+
+
+def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode='SUMO'):
+
+    theta_min = theta_true - 5  # Limite inférieure de la plage
+    theta_max = theta_true + 5 # Limite supérieure de la plage
+    num_points = 30  # Nombre de points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+
+    if methode == 'SUMO':
+
+        estimated_likelihood = []
+        with tqdm(total=n_simulations) as pbar:
+
+            for theta in theta_values:
+
+                estimated_likelihood.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
+
+                pbar.update(1)
+
+    #elif methode == 'ML_RR':
+
+    #   estimated_likelihood = []
+
+        #for theta in theta_values:
+        #    estimateur = Estimateurs(self.x, theta, self.r)
+        #    estimated_likelihood.append(estimateur.log_likelihood_ML_RR(n_simulations)[1])'''
+
+    #elif methode == 'ML_SS':
+    #    estimated_likelihood = []
+
+        #for theta in theta_values:
+        #    estimateur = Estimateurs(self.x, theta, self.r)
+        #    estimated_likelihood.append(estimateur.log_likelihood_ML_SS(n_simulations)[1])
+
+    true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
+
+    plt.plot(theta_values, true_likelihood_values, color='r', label='True likelihood')  
+    plt.scatter(theta_values, estimated_likelihood, color='purple', marker='x', label=methode)
+    plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta_true)))
+    plt.ylim([-300,500])
+    plt.xlabel('Theta')
+    plt.ylabel('Likelihood')
+    plt.title(f'Estimation de la likelihood par {methode}')
+    plt.legend(loc='best')
+    plt.show()
+
+    return 
