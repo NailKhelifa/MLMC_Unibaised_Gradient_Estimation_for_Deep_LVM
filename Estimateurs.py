@@ -80,6 +80,19 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     ## POUR
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
+def poids(x, z, AX_b):
+
+    q_phi,p_theta = [],[]
+    theta_hat = x.mean(axis=0) #On prend la moyenne de l'échantillon mais là encore on pourrait s'épargner le tirage de tout l'échantillon
+    
+    #Remarque : Avec cette façon de faire on ne fait pas la disctinction entre x_data et Theta_hat -> pas normal
+    for i in range(len(z)):
+        Z_i = z[i][0]
+        q_phi.append(multivariate_normal.pdf(Z_i, mean=AX_b[i], cov=(2/3)*np.identity(20)))
+        p_theta.append(multivariate_normal.pdf(Z_i, mean=theta_hat, cov=np.identity(20)) * multivariate_normal.pdf(x[i], mean=Z_i, cov=np.identity(20)))
+    
+    return np.array(p_theta) / np.array(q_phi)
+
 
 class Estimateurs: 
 
@@ -138,11 +151,14 @@ class Estimateurs:
 
         '''
 
+        AX_b_hat = np.dot(self.x, self.A_hat.T) + self.b_hat
+        AX_b = np.dot(self.x, self.A.T) + self.b
+
         ## calcul des poids pour theta_hat (associé à l'observation x)
-        weight_theta_hat = multivariate_normal.pdf(z, mean=self.theta_hat, cov=np.identity(20)) * multivariate_normal.pdf(self.x, mean=z, cov=np.identity(20)) /  multivariate_normal.pdf(self.x, mean = np.dot(self.x, self.A_hat) + self.b_hat, cov=(2/3)*np.identity(20))
+        weight_theta_hat = poids(self.x, z, AX_b_hat)
 
         ## cacul des poids pour theta (associé à un theta)                                                                                                    
-        weight_theta = multivariate_normal.pdf(z, mean=self.theta, cov=np.identity(20)) * multivariate_normal.pdf(self.x, mean=z, cov=np.identity(20)) /  multivariate_normal.pdf(self.x, mean = np.dot(self.x, self.A) + self.b, cov=(2/3)*np.identity(20))
+        weight_theta = poids(self.x, z, AX_b)
         
         return (weight_theta_hat, weight_theta) ## attention, renvoie un tuple
        

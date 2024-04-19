@@ -1,1 +1,3 @@
 --> pourquoi renvoyer AX_b dans encoder fonction ?
+
+--> fonction weight de Tom ?
