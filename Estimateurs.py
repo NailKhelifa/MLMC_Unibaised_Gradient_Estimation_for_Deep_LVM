@@ -81,7 +81,7 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
 
-class Estimators: 
+class Estimateurs: 
 
     '''
     ================================================================================================================================
