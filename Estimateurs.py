@@ -243,7 +243,7 @@ class Estimateurs:
         for _ in range(n_simulations):
 
 
-            K = np.random.geometric(p=self.r, size=1)[0]
+            K = np.random.geometric(p=self.r)
 
             ## K+3 pour avoir de quoi aller jusque K+3
             z_sample_hat, _, _ = generate_encoder(self.x, K+2, noised_A=self.A_hat, noised_b=self.b_hat)
@@ -272,7 +272,7 @@ class Estimateurs:
 
         for _ in range(n_simulations):
 
-            K = np.random.geometric(p=self.r, size=1)[0]
+            K = np.random.geometric(p=self.r)
 
             ## K+3 pour avoir de quoi aller jusque K+3
             z_sample_hat, z_sample_odd_hat, z_sample_even_hat = generate_encoder(self.x, 2**(K+1), noised_A=self.A_hat, noised_b=self.b_hat)
@@ -302,7 +302,7 @@ class Estimateurs:
 
         for _ in range(n_simulations):
 
-            K = np.random.geometric(p=self.r, size=1)[0]
+            K = np.random.geometric(p=self.r)
 
             ## K+3 pour avoir de quoi aller jusque K+3
             z_sample_hat, z_sample_odd_hat, z_sample_even_hat = generate_encoder(self.x, 2**(K+1), noised_A=self.A_hat, noised_b=self.b_hat)
