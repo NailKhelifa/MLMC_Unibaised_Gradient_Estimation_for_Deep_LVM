@@ -391,7 +391,7 @@ class Estimateurs:
 
     def true_likelihood(self, theta):
 
-        likelihood = (1/((np.sqrt(2*np.pi)**20))*np.sqrt(2)) - (1/4)*np.sum((self.x - theta)**2)
+        likelihood = (1/((np.sqrt(2*np.pi)**20)*np.sqrt(2))) * np.exp(-(1/4)*np.sum((self.x - theta)**2))
 
         return np.log(likelihood)
 
