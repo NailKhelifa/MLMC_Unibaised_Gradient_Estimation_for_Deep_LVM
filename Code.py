@@ -1,6 +1,27 @@
 import numpy as np 
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
+import sys
+
+### Pour l'installation automatique de tqdm
+
+try:
+
+    from tqdm import tqdm
+
+except ImportError:
+
+    print("tdqm package not found. Installing...")
+
+    try:
+
+        import subprocess
+        subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
+        from pypfopt.efficient_frontier import EfficientFrontier
+        
+    except Exception as e:
+        print(f"Error installing PyPortfolioOpt package: {e}")
+        sys.exit(1)
 
 
 def joint_probability(theta, dim=20):
@@ -141,29 +162,35 @@ def single_sample(r, I_0, Delta, K):
 
     return I_0 + Delta(K)/(((1-r)**(K-1))*r)
     
+
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     
     SUMO_theta = []
 
-    for _ in range(n_simulations):
+    # Initialize tqdm with the total number of simulations
+    with tqdm(total=n_simulations) as pbar:
+        
+        for _ in range(n_simulations):
+            K = np.random.geometric(p=r)
 
-        K = np.random.geometric(p=r)
+            ## K+3 pour avoir de quoi aller jusque K+3
+            z_sample_theta, _, _ = generate_encoder(x, K+2, noised_A, noised_b)
 
-        ## K+3 pour avoir de quoi aller jusque K+3
-        z_sample_theta, _, _ = generate_encoder(x, K+2, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+                
+            I_0 = np.mean([np.log(weights_array)])
+        
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
+            Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
 
-        weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
-            
-        I_0 = np.mean([np.log(weights_array)])
-    
-        ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
-        Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
+            ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
+            SUMO_theta.append(roulette_russe(I_0, Delta_theta, K))
 
-        ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
-        ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
-        SUMO_theta.append(roulette_russe(I_0, Delta_theta, K))
+            pbar.update(1)  # Update the progress bar
 
     return np.mean(SUMO_theta)
+
 
 def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
