@@ -163,7 +163,7 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
 
             pbar.update(1)  # Update the progress bar
 
-    return np.mean([np.mean(values) for values in SUMO])
+    return SUMO
 
 def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
 
