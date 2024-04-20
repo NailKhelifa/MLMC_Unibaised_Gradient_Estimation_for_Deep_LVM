@@ -23,7 +23,6 @@ except ImportError:
         print(f"Error installing PyPortfolioOpt package: {e}")
         sys.exit(1)
 
-
 def joint_probability(theta, dim=20):
     """
     ---------------------------------------------------------------------------------------------------------------------
@@ -109,7 +108,6 @@ def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_en
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
 def weights(x, z_sample, theta, A, b):
-
 
     dimension = 20
 
@@ -221,8 +219,8 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
             ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
 
-            weights_array_odd = np.log(z_sample_odd_theta)
-            weights_array_even = np.log(z_sample_even_theta)
+            weights_array_odd = np.log(weights_array[1::2])
+            weights_array_even = np.log(weights_array[::2])
 
             I_0 = np.mean([np.log(weights_array)])
 
@@ -235,12 +233,11 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
             ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
-            RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K)))
+            RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
 
             pbar.update(1)
 
     return np.mean(RR)
-
 
 def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode='SUMO'):
 
