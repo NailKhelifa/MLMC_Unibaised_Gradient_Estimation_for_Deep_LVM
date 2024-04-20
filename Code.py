@@ -2,6 +2,8 @@ import numpy as np
 from scipy.stats import multivariate_normal
 import matplotlib.pyplot as plt
 import sys
+import plotly.graph_objects as go
+import time
 
 ### Pour l'installation automatique de tqdm
 
@@ -280,53 +282,72 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
     num_points = 60  # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
+    progress_bar = tqdm(total=num_points, desc='Progression', position=0)
+
     if methode == 'SUMO':
 
         estimated_likelihood = []
 
-        with tqdm(total=n_simulations) as pbar:
+        for theta in theta_values:
 
-            for theta in theta_values:
+            estimated_likelihood.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
 
-                estimated_likelihood.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
+            # Effectuer une tâche
+            time.sleep(0.01)
+            
+            # Mettre à jour la barre de progression
+            progress_bar.update(1)
 
-                pbar.update(1)
+        progress_bar.close()
 
     elif methode == 'ML_SS':
 
         estimated_likelihood = []
 
-        with tqdm(total=n_simulations) as pbar:
+        for theta in theta_values:
 
-            for theta in theta_values:
+            estimated_likelihood.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
 
-                estimated_likelihood.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
+            # Effectuer une tâche
+            time.sleep(0.01)
+            
+            # Mettre à jour la barre de progression
+            progress_bar.update(1)
 
-                pbar.update(1)
+        progress_bar.close()
 
     elif methode == "ML_RR": 
 
         estimated_likelihood = []
 
-        with tqdm(total=n_simulations) as pbar:
+        for theta in theta_values:
 
-            for theta in theta_values:
+            estimated_likelihood.append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
 
-                estimated_likelihood.append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
+            # Effectuer une tâche
+            time.sleep(0.01)
+            
+            # Mettre à jour la barre de progression
+            progress_bar.update(1)
 
-                pbar.update(1)
+        progress_bar.close()
 
     elif methode == "IWAE": 
 
         estimated_likelihood = []
 
-        with tqdm(total=n_simulations) as pbar:
 
-            for theta in theta_values:
+        for theta in theta_values:
 
-                estimated_likelihood.append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+            
+            # Effectuer une tâche
+            time.sleep(0.01)
+            
+            # Mettre à jour la barre de progression
+            progress_bar.update(1)
 
-                pbar.update(1)
+        progress_bar.close()
 
     elif methode == "all": 
 
@@ -334,48 +355,81 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
 
         methodes = ['IWAE', 'ML_SS', 'ML_RR', 'SUMO']
         
-        with tqdm(total=n_simulations) as pbar:
 
-            for theta in theta_values:
-                
-                estimated_likelihood[0].append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
+        for theta in theta_values:
+            
+            estimated_likelihood[0].append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
 
-                estimated_likelihood[1].append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood[1].append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
 
-                estimated_likelihood[2].append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood[2].append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
 
-                estimated_likelihood[3].append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
-                
-                pbar.update(1)
+            estimated_likelihood[3].append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+            
 
-            true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
+            # Effectuer une tâche
+            time.sleep(0.01)
+            
+            # Mettre à jour la barre de progression
+            progress_bar.update(1)
 
-            plt.plot(theta_values, true_likelihood_values, color='r', label='True likelihood')  
-            plt.scatter(theta_values, estimated_likelihood[0], color='purple', marker='x', label=methodes[0])
-            plt.scatter(theta_values, estimated_likelihood[1], color='orange', marker='x', label=methodes[1])
-            plt.scatter(theta_values, estimated_likelihood[2], color='green', marker='x', label=methodes[2])
-            plt.scatter(theta_values, estimated_likelihood[3], color='yellow', marker='x', label=methodes[3])
-            plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta_true)))
-            plt.ylim([-300,500])
-            plt.xlabel('Theta')
-            plt.ylabel('Likelihood')
-            plt.title(f'Estimation de la likelihood')
-            plt.legend(loc='best')
-            plt.show()
+        progress_bar.close()
 
-            return
+        true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
+
+        # Création de la figure
+        fig = go.Figure()
+
+        # Ajout de la ligne pour la vraie vraisemblance
+        fig.add_trace(go.Scatter(x=theta_values, y=true_likelihood_values, mode='lines', name='True likelihood', line=dict(color='red')))
+
+        # Ajout des marqueurs pour les estimations de vraisemblance
+        for i, estimated_likelihood_i in enumerate(estimated_likelihood):
+            fig.add_trace(go.Scatter(x=theta_values, y=estimated_likelihood_i, mode='markers', name=methodes[i], marker=dict(color=['purple', 'orange', 'green', 'yellow'][i], symbol='x')))
+
+        # Ajout de la ligne verticale pour theta_true
+        fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=-300, y1=500, line=dict(color='black', dash='dash'), name=f'Theta={theta_true}')
+
+        # Mise en forme de la figure
+        fig.update_layout(
+            xaxis=dict(title='Theta', tickfont=dict(size=12)),
+            yaxis=dict(title='Likelihood', range=[-300, 500], tickfont=dict(size=12)),
+            title='Estimation de la likelihood',
+            legend=dict(font=dict(size=10)),
+            showlegend=True,
+            grid=dict(rows=1, columns=1)  # Définir le nombre de lignes et de colonnes de la grille
+        )
+
+        # Affichage de la figure
+        fig.show()
+
+        return
                 
     true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
 
-    plt.plot(theta_values, true_likelihood_values, color='r', label='True likelihood')  
-    plt.scatter(theta_values, estimated_likelihood, color='purple', marker='x', label=methode)
-    plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta_true)))
-    plt.ylim([-300,500])
-    plt.xlabel('Theta')
-    plt.ylabel('Likelihood')
-    plt.title(f'Estimation de la likelihood par {methode}')
-    plt.legend(loc='best')
-    plt.show()
+    fig = go.Figure()
+
+    # Tracé de la vraisemblance réelle
+    fig.add_trace(go.Scatter(x=theta_values, y=true_likelihood_values, mode='lines', name='Vraisemblance réelle (avec theta_true)', line=dict(color='blue')))
+
+    # Tracé de la vraisemblance estimée
+    fig.add_trace(go.Scatter(x=theta_values, y=estimated_likelihood, mode='markers', name=methode, marker=dict(color='red', symbol='cross')))
+
+    # Ligne verticale pour la valeur de theta vrai
+    fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=-300, y1=500, line=dict(color='black', dash='dash'), name=f'Theta={theta_true}')
+
+    # Mise en forme de la figure
+    fig.update_layout(
+        title=f'Estimation de la vraisemblance par {methode}',
+        xaxis=dict(title='Theta', tickfont=dict(size=12)),
+        yaxis=dict(title='Vraisemblance', range=[-300, 500], tickfont=dict(size=12)),
+        legend=dict(font=dict(size=10)),
+        showlegend=True,
+        grid=dict(rows=1, columns=1)  # Définir le nombre de lignes et de colonnes de la grille
+    )
+
+    # Affichage de la figure
+    fig.show()
 
     return 
 
