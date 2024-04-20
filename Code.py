@@ -248,7 +248,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
 
     theta_min = theta_true - 5  # Limite inférieure de la plage
     theta_max = theta_true + 5 # Limite supérieure de la plage
-    num_points = 30  # Nombre de points à générer
+    num_points = 50  # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
     if methode == 'SUMO':

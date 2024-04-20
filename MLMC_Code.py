@@ -100,8 +100,7 @@ def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée gen
 
     ## POUR
     return z_sample #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
-
-    
+   
 def true_likelihood(x, theta):
 
     likelihood = (1/((np.sqrt(2*np.pi)**20)*np.sqrt(2))) * np.exp(-(1/4)*np.sum((x - theta)**2))
