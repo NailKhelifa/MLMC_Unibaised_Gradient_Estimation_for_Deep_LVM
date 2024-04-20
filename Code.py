@@ -254,6 +254,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
     if methode == 'SUMO':
 
         estimated_likelihood = []
+
         with tqdm(total=n_simulations) as pbar:
 
             for theta in theta_values:
@@ -262,21 +263,18 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
 
                 pbar.update(1)
 
-    #elif methode == 'ML_RR':
+    elif methode == 'ML_SS':
 
-    #   estimated_likelihood = []
+        estimated_likelihood = []
 
-        #for theta in theta_values:
-        #    estimateur = Estimateurs(self.x, theta, self.r)
-        #    estimated_likelihood.append(estimateur.log_likelihood_ML_RR(n_simulations)[1])'''
+        with tqdm(total=n_simulations) as pbar:
 
-    #elif methode == 'ML_SS':
-    #    estimated_likelihood = []
+            for theta in theta_values:
 
-        #for theta in theta_values:
-        #    estimateur = Estimateurs(self.x, theta, self.r)
-        #    estimated_likelihood.append(estimateur.log_likelihood_ML_SS(n_simulations)[1])
+                estimated_likelihood.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
 
+                pbar.update(1)
+                
     true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
 
     plt.plot(theta_values, true_likelihood_values, color='r', label='True likelihood')  
