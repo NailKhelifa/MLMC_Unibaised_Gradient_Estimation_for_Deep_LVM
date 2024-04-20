@@ -107,7 +107,7 @@ def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_en
     ## POUR
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
-def weights(x, z_sample, theta, A, b):
+def weights(x, z_sample, theta, A, b): #Question sur ce theta qui est censé être theta estimé sur X_data ? 
 
     dimension = 20
 
@@ -135,7 +135,32 @@ def true_likelihood(x, theta):
 
 def true_grad(x, theta):
 
-    return -0.5 * (x - theta*np.ones(20))
+    #return -0.5 * (x - theta*np.ones(20))
+    return -0.5*(x.mean() - theta)
+
+def log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations):
+        
+        IWAE = []
+    
+        # Initialize tqdm with the total number of simulations
+        with tqdm(total=n_simulations) as pbar:
+            
+            for _ in range(n_simulations):
+    
+                K = np.random.geometric(p=r)
+    
+                z_sample_theta, _, _ = generate_encoder(x, K, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+                                                                                ## ce qui est plus grand que prévu, il faut slicer correctement
+    
+                weights_array = weights(x, z_sample_theta[:K], theta, noised_A, noised_b)
+                    
+                IWAE_K = [np.log(np.mean(weights_array))]
+
+                IWAE.append(IWAE_K)
+    
+                pbar.update(1)  # Update the progress bar
+    
+        return np.mean(IWAE)
 
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     
@@ -181,19 +206,21 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
             ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
             K = np.random.geometric(p=r)
 
-            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2*(K+1) d'un coup
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
             z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
             ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
-    
-            weights_array_odd = np.log(z_sample_odd_theta) # impairs
-            weights_array_even = np.log(z_sample_even_theta) # pairs
+
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(z_sample_odd_theta) # impairs
+            #weights_array_even = np.log(z_sample_even_theta) # pairs
 
             I_0 = np.mean([np.log(weights_array)])
 
-            l_odd = np.log(np.mean(np.exp(weights_array_odd)))
-            l_even = np.log(np.mean(np.exp(weights_array_even)))
+            l_odd = np.log(np.mean(np.exp(np.log(weights_array_odd))))
+            l_even = np.log(np.mean(np.exp(np.log(weights_array_even))))
             l_odd_and_even = np.log(np.mean(np.exp(np.log(weights_array))))
 
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
@@ -218,19 +245,21 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
             ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
             K = np.random.geometric(p=r)
 
-            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2*(K+1) d'un coup
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
             z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
             ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
 
-            weights_array_odd = np.log(weights_array[1::2])
-            weights_array_even = np.log(weights_array[::2])
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(weights_array[1::2])
+            #weights_array_even = np.log(weights_array[::2])
 
             I_0 = np.mean([np.log(weights_array)])
 
-            l_odd = lambda j : np.log(np.mean(np.exp(weights_array_odd[:2**(j)])))
-            l_even = lambda j : np.log(np.mean(np.exp(weights_array_even[:2**(j)])))
+            l_odd = lambda j : np.log(np.mean(np.exp(np.log(weights_array_odd[:2**(j)]))))
+            l_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array_even[:2**(j)]))))
             l_odd_and_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array[:2**(j+1)]))))
 
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
@@ -238,8 +267,8 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
             ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
-            RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
-
+            #RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
+            RR.append(I_0 + Delta_theta(0) + sum(Delta_theta(j)/sum((1-r)**(i-1)*r for i in range(j, K+1)) for j in range(1, K+1)))
             pbar.update(1)
 
     return np.mean(RR)
@@ -248,7 +277,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
 
     theta_min = theta_true - 5  # Limite inférieure de la plage
     theta_max = theta_true + 5 # Limite supérieure de la plage
-    num_points = 50  # Nombre de points à générer
+    num_points = 60  # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
     if methode == 'SUMO':
@@ -274,6 +303,67 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
                 estimated_likelihood.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
 
                 pbar.update(1)
+
+    elif methode == "ML_RR": 
+
+        estimated_likelihood = []
+
+        with tqdm(total=n_simulations) as pbar:
+
+            for theta in theta_values:
+
+                estimated_likelihood.append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
+
+                pbar.update(1)
+
+    elif methode == "IWAE": 
+
+        estimated_likelihood = []
+
+        with tqdm(total=n_simulations) as pbar:
+
+            for theta in theta_values:
+
+                estimated_likelihood.append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+
+                pbar.update(1)
+
+    elif methode == "all": 
+
+        estimated_likelihood = [[], [], [], []]
+
+        methodes = ['IWAE', 'ML_SS', 'ML_RR', 'SUMO']
+        
+        with tqdm(total=n_simulations) as pbar:
+
+            for theta in theta_values:
+                
+                estimated_likelihood[0].append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
+
+                estimated_likelihood[1].append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
+
+                estimated_likelihood[2].append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
+
+                estimated_likelihood[3].append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+                
+                pbar.update(1)
+
+            true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
+
+            plt.plot(theta_values, true_likelihood_values, color='r', label='True likelihood')  
+            plt.scatter(theta_values, estimated_likelihood[0], color='purple', marker='x', label=methodes[0])
+            plt.scatter(theta_values, estimated_likelihood[1], color='orange', marker='x', label=methodes[1])
+            plt.scatter(theta_values, estimated_likelihood[2], color='green', marker='x', label=methodes[2])
+            plt.scatter(theta_values, estimated_likelihood[3], color='yellow', marker='x', label=methodes[3])
+            plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta_true)))
+            plt.ylim([-300,500])
+            plt.xlabel('Theta')
+            plt.ylabel('Likelihood')
+            plt.title(f'Estimation de la likelihood')
+            plt.legend(loc='best')
+            plt.show()
+
+            return
                 
     true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
 
@@ -288,3 +378,120 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
     plt.show()
 
     return 
+
+def grad_IWAE(r, x, noised_A, noised_b, theta, n_simulations):
+
+    ## on se donne d'abord une plage de valeurs pour theta
+    theta_min = theta - 5  # Limite inférieure de la plage
+    theta_max = theta + 5 # Limite supérieure de la plage
+    num_points = 60  # Nombre de points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+
+    IWAE_values = []
+
+    ## on caclue les valeurs de SUMO sur cette plage de valeurs
+    for i in range(len(theta_values)):
+
+        IWAE_values.append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+
+    gradient_IWAE = np.gradient(IWAE_values, theta_values)
+
+    return gradient_IWAE
+
+def grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations):
+
+    ## on se donne d'abord une plage de valeurs pour theta
+    theta_min = theta - 5  # Limite inférieure de la plage
+    theta_max = theta + 5 # Limite supérieure de la plage
+    num_points = 60  # Nombre de points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+
+    SUMO_values = []
+
+    ## on caclue les valeurs de SUMO sur cette plage de valeurs
+    for i in range(len(theta_values)):
+
+        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
+
+    gradient_SUMO = np.gradient(SUMO_values, theta_values)
+
+    return gradient_SUMO
+
+
+def grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations):
+
+    ## on se donne d'abord une plage de valeurs pour theta
+    theta_min = theta - 5  # Limite inférieure de la plage
+    theta_max = theta + 5 # Limite supérieure de la plage
+    num_points = 60  # Nombre de points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+
+    ML_RR_values = []
+
+    ## on caclue les valeurs de SUMO sur cette plage de valeurs
+    for i in range(len(theta_values)):
+
+        ML_RR_values.append(log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations))
+        #print("Step: "+str('{:.1f}'.format(100*(i/30)))+"%")
+
+    gradient_ML_RR = np.gradient(ML_RR_values, theta_values)
+
+    return gradient_ML_RR
+    
+
+def grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations):
+
+    ## on se donne d'abord une plage de valeurs pour theta
+    theta_min = theta - 5  # Limite inférieure de la plage
+    theta_max = theta + 5 # Limite supérieure de la plage
+    num_points = 60  # Nombre de points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+
+    ML_SS_values = []
+
+    ## on caclue les valeurs de SUMO sur cette plage de valeurs
+    for i in range(len(theta_values)):
+
+        ML_SS_values.append(log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations))
+        #print("Step: "+str('{:.1f}'.format(100*(i/30)))+"%")
+
+    gradient_ML_SS = np.gradient(ML_SS_values, theta_values)
+
+    return gradient_ML_SS
+
+def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='SUMO'):
+    
+    theta_min = theta_true - 5  # Limite inférieure de la plage
+    theta_max = theta_true + 5 # Limite supérieure de la plage
+    num_points = 60  # Nombre de points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+
+    if methode == 'SUMO':
+
+        estimated_grad = grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations)
+
+    elif methode == 'ML_SS':
+
+        estimated_grad = grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations)
+
+    elif methode == 'ML_RR': 
+
+        estimated_grad = grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations)
+
+    elif methode == 'IWAE': 
+
+        estimated_grad = grad_IWAE(r, x, noised_A, noised_b, theta_true, n_simulations)
+
+    #elif methode == 'all': 
+                
+    true_gradient_values = [true_grad(x, theta) for theta in theta_values]
+
+    plt.plot(theta_values, true_gradient_values, color='r', label='True Gradient')  
+    plt.scatter(theta_values, estimated_grad, color='purple', marker='x', label=methode)
+    plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta_true)))
+    #plt.ylim([-300,500])
+    plt.xlabel('Theta')
+    plt.ylabel('Gradient')
+    plt.title(f'Estimation de la likelihood par {methode}')
+    plt.legend(loc='best')
+    plt.show()
