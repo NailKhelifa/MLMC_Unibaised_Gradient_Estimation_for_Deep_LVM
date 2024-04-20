@@ -527,12 +527,27 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='
                 
     true_gradient_values = [true_grad(x, theta) for theta in theta_values]
 
-    plt.plot(theta_values, true_gradient_values, color='r', label='True Gradient')  
-    plt.scatter(theta_values, estimated_grad, color='purple', marker='x', label=methode)
-    plt.axvline(x=theta_true, color='black', linestyle='--', label='theta='+ str('{:.2f}'.format(theta_true)))
-    #plt.ylim([-300,500])
-    plt.xlabel('Theta')
-    plt.ylabel('Gradient')
-    plt.title(f'Estimation de la likelihood par {methode}')
-    plt.legend(loc='best')
-    plt.show()
+    # Créer la figure
+    fig = go.Figure()
+
+    # Ajouter la vraie valeur du gradient
+    fig.add_trace(go.Scatter(x=theta_values, y=true_gradient_values, mode='lines', name='True Gradient', line=dict(color='red')))
+
+    # Ajouter l'estimation du gradient
+    fig.add_trace(go.Scatter(x=theta_values, y=estimated_grad, mode='markers', name=methode, marker=dict(color='purple', symbol='x')))
+
+    # Ajouter la ligne verticale pour la vraie valeur de theta
+    fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
+                line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
+
+    # Mise en forme de la figure
+    fig.update_layout(
+        xaxis=dict(title='Theta'),
+        yaxis=dict(title='Gradient'),
+        title=f'Estimation de la likelihood par {methode}',
+        legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
+        showlegend=True
+    )
+
+    # Affichage de la figure
+    fig.show()
