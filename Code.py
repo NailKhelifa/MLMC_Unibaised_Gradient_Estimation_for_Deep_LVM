@@ -98,7 +98,7 @@ def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_en
 
     z_sample = []
 
-    for _ in range(2**(k)):
+    for _ in range(2**(k+1)):
         z_sample.append(np.random.multivariate_normal(AX_b, cov)) ## 2**(k+1) pour ne pas avoir de problèmes avec les échantillons pairs 
                                                                   ## et impairs
         
@@ -109,6 +109,7 @@ def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_en
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
 def weights(x, z_sample, theta, A, b):
+
 
     dimension = 20
 
@@ -127,47 +128,6 @@ def weights(x, z_sample, theta, A, b):
         weights.append(p_theta_xz / q_phi_z_given_x_density)
 
     return weights
-
-
-def roulette_russe(r, I_0, Delta, K):
-
-    '''
-    ---------------------------------------------------------------------------------------------------------------------
-    IDEA: compute the rr estimator under the conditions of theorem 1 and a geometric distribution of parameter r for the 
-            number of parameters in the sum 
-    ---------------------------------------------------------------------------------------------------------------------
-
-    ---------------------------------------------------------------------------------------------------------------------
-    ARGUMENTS: 
-    - I_0: float ; see the theoretical framework in the article for more details
-    
-    - Delta: lambda function to compute the ∆_k such as in the theoretical framework of the paper
-
-    - K: integer, sampled according to a law on N (positive integers)
-    ---------------------------------------------------------------------------------------------------------------------
-    '''
-
-    return I_0 + sum(Delta(k)/((1-r)**(k)) for k in range(1,K))
-
-def single_sample(r, I_0, Delta, K):
-
-    '''
-    ---------------------------------------------------------------------------------------------------------------------
-    IDEA: compute the single_sample estimator (ss) under the conditions of theorem 1 and a geometric distribution of 
-            parameter r for the number of parameters in the sum 
-    ---------------------------------------------------------------------------------------------------------------------
-
-    ---------------------------------------------------------------------------------------------------------------------
-    ARGUMENTS: 
-    - I_0: float ; see the theoretical framework in the article for more details
-    
-    - Delta: lambda function to compute the ∆_k such as in the theoretical framework of the paper
-
-    - K: integer, sampled according to a law on N (positive integers)
-    ---------------------------------------------------------------------------------------------------------------------
-    '''
-
-    return I_0 + Delta(K)/(((1-r)**(K-1))*r)
     
 def true_likelihood(x, theta):
 
@@ -201,14 +161,48 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
             Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
 
-            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur SUMO 
-            ## et on stocke le résultat dans la liste SUMO sur laquelle on moyennera en sortie 
-            SUMO_theta.append(roulette_russe(r, I_0, Delta_theta, K))
+            SUMO_theta.append(I_0 + sum(Delta_theta(j)/((1-r)**j)) for j in range(1, K))
 
             pbar.update(1)  # Update the progress bar
 
     return np.mean(SUMO_theta)
 
+def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
+
+    SS = []
+
+    with tqdm(total=n_simulations) as pbar:
+
+        for _ in range(n_simulations):
+
+            ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
+            K = np.random.geometric(p=r)
+
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2*(K+1) d'un coup
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+
+            ## Étape 3 : on construit les vecteurs de poids
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+    
+            weights_array_odd = np.log(z_sample_odd_theta) # impairs
+            weights_array_even = np.log(z_sample_even_theta) # pairs
+
+            I_0 = np.mean([np.log(weights_array)])
+
+            l_odd = np.log(np.mean(np.exp(weights_array_odd)))
+            l_even = np.log(np.mean(np.exp(weights_array_even)))
+            l_odd_and_even = np.log(np.mean(np.exp(np.log(weights_array))))
+
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_theta_K = l_odd_and_even - 0.5 * (l_odd + l_even)
+
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            SS.append(I_0 + (Delta_theta_K/(((1-r)**(K-1))*r)))
+
+            pbar.update(1)
+
+    return np.mean(SS)
 
 def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
@@ -218,24 +212,32 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
         for _ in range(n_simulations):
 
+            ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
             K = np.random.geometric(p=r)
 
-            ## K+3 pour avoir de quoi aller jusque K+3
-            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, 2**(K+1), noised_A, noised_b)
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2*(K+1) d'un coup
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
+            ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
 
-            weights_array_odd = np.log(weights_array[1::2])
-            weights_array_even = np.log(weights_array[::2])
+            weights_array_odd = np.log(z_sample_odd_theta)
+            weights_array_even = np.log(z_sample_even_theta)
 
             I_0 = np.mean([np.log(weights_array)])
 
+            l_odd = lambda j : np.log(np.mean(np.exp(weights_array_odd[:2**(j)])))
+            l_even = lambda j : np.log(np.mean(np.exp(weights_array_even[:2**(j)])))
+            l_odd_and_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array[:2**(j+1)]))))
+
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
-            Delta_theta = lambda j: np.log(np.mean(weights_array)) - 0.5 * (np.log)
+            Delta_theta = lambda j: l_odd_and_even(j) - 0.5 * (l_odd(j) + l_even(j))
 
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
             ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
-            RR.append(roulette_russe(I_0, Delta_theta, K))
+            RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K)))
+
+            pbar.update(1)
 
     return np.mean(RR)
 
