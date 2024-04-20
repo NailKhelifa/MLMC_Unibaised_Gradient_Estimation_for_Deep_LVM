@@ -544,7 +544,7 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='
     fig.update_layout(
         xaxis=dict(title='Theta'),
         yaxis=dict(title='Gradient'),
-        title=f'Estimation de la likelihood par {methode}',
+        title=f'Estimation du gradient par {methode}',
         legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
         showlegend=True
     )
