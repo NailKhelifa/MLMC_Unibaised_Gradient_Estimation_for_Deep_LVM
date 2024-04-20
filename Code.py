@@ -139,7 +139,7 @@ def true_grad(x, theta):
 
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     
-    SUMO_theta = []
+    SUMO = []
 
     # Initialize tqdm with the total number of simulations
     with tqdm(total=n_simulations) as pbar:
@@ -159,11 +159,11 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
             Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
 
-            SUMO_theta.append(I_0 + sum(Delta_theta(j)/((1-r)**j)) for j in range(1, K))
+            SUMO.append(I_0 + sum(Delta_theta(j)/((1-r)**j)) for j in range(1, K))
 
             pbar.update(1)  # Update the progress bar
 
-    return np.mean(SUMO_theta)
+    return np.mean([np.mean(values) for values in SUMO])
 
 def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
 
