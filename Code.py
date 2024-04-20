@@ -137,6 +137,30 @@ def true_grad(x, theta):
 
     return -0.5 * (x - theta*np.ones(20))
 
+def log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations):
+        
+        IWAE = []
+    
+        # Initialize tqdm with the total number of simulations
+        with tqdm(total=n_simulations) as pbar:
+            
+            for _ in range(n_simulations):
+    
+                K = np.random.geometric(p=r)
+    
+                z_sample_theta, _, _ = generate_encoder(x, K, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+                                                                                ## ce qui est plus grand que prévu, il faut slicer correctement
+    
+                weights_array = weights(x, z_sample_theta[:K], theta, noised_A, noised_b)
+                    
+                IWAE_K = [np.log(np.mean(weights_array))]
+
+                IWAE.append(IWAE_K)
+    
+                pbar.update(1)  # Update the progress bar
+    
+        return np.mean(IWAE)
+
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     
     SUMO = []
@@ -181,19 +205,21 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
             ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
             K = np.random.geometric(p=r)
 
-            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2*(K+1) d'un coup
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
             z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
             ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
-    
-            weights_array_odd = np.log(z_sample_odd_theta) # impairs
-            weights_array_even = np.log(z_sample_even_theta) # pairs
+
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(z_sample_odd_theta) # impairs
+            #weights_array_even = np.log(z_sample_even_theta) # pairs
 
             I_0 = np.mean([np.log(weights_array)])
 
-            l_odd = np.log(np.mean(np.exp(weights_array_odd)))
-            l_even = np.log(np.mean(np.exp(weights_array_even)))
+            l_odd = np.log(np.mean(np.exp(np.log(weights_array_odd))))
+            l_even = np.log(np.mean(np.exp(np.log(weights_array_even))))
             l_odd_and_even = np.log(np.mean(np.exp(np.log(weights_array))))
 
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
@@ -218,19 +244,21 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
             ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
             K = np.random.geometric(p=r)
 
-            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2*(K+1) d'un coup
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
             z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
             ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
 
-            weights_array_odd = np.log(weights_array[1::2])
-            weights_array_even = np.log(weights_array[::2])
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(weights_array[1::2])
+            #weights_array_even = np.log(weights_array[::2])
 
             I_0 = np.mean([np.log(weights_array)])
 
-            l_odd = lambda j : np.log(np.mean(np.exp(weights_array_odd[:2**(j)])))
-            l_even = lambda j : np.log(np.mean(np.exp(weights_array_even[:2**(j)])))
+            l_odd = lambda j : np.log(np.mean(np.exp(np.log(weights_array_odd[:2**(j)]))))
+            l_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array_even[:2**(j)]))))
             l_odd_and_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array[:2**(j+1)]))))
 
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
@@ -238,8 +266,8 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
             ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
-            RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
-
+            #RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
+            RR.append(I_0 + Delta_theta(0) + sum(Delta_theta(j)/sum((1-r)**(i-1)*r for i in range(j, K+1)) for j in range(1, K+1)))
             pbar.update(1)
 
     return np.mean(RR)
