@@ -159,8 +159,6 @@ def log_likelihood_IWAE(theta, x, noised_A, noised_b, k, n_simulations):
     
         return np.mean(IWAE)
 
-
-
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     
     SUMO = []
@@ -189,8 +187,6 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
         SUMO.append(SUMO_K)
 
     return np.mean(SUMO)
-
-
 
 def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
 
@@ -265,7 +261,7 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
     return np.mean(RR)
 
-def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode='SUMO'):
+def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IAWE, methode='SUMO'):
 
     theta_min = theta_true - 5  # Limite inférieure de la plage
     theta_max = theta_true + 5 # Limite supérieure de la plage
@@ -329,7 +325,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
 
         for theta in theta_values:
 
-            estimated_likelihood.append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
             
             # Effectuer une tâche
             time.sleep(0.01)
@@ -354,7 +350,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, methode
 
             estimated_likelihood[2].append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
 
-            estimated_likelihood[3].append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood[3].append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
             
 
             # Effectuer une tâche
@@ -461,7 +457,6 @@ def grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations):
 
     return gradient_SUMO
 
-
 def grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations):
 
     ## on se donne d'abord une plage de valeurs pour theta
@@ -482,7 +477,6 @@ def grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations):
 
     return gradient_ML_RR
     
-
 def grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations):
 
     ## on se donne d'abord une plage de valeurs pour theta
