@@ -19,10 +19,10 @@ except ImportError:
 
         import subprocess
         subprocess.check_call([sys.executable, "-m", "pip", "install", "tqdm"])
-        from pypfopt.efficient_frontier import EfficientFrontier
+        from tqdm import tqdm
         
     except Exception as e:
-        print(f"Error installing PyPortfolioOpt package: {e}")
+        print(f"Error installing tqdm package: {e}")
         sys.exit(1)
 
 def joint_probability(theta, dim=20):
@@ -140,24 +140,26 @@ def true_grad(x, theta):
     #return -0.5 * (x - theta*np.ones(20))
     return -0.5*(x.mean() - theta)
 
-def log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations):
+def log_likelihood_IWAE(theta, x, noised_A, noised_b, k, n_simulations):
         
         IWAE = []
 
         for _ in range(n_simulations):
 
-            K = np.random.geometric(p=r)
+            z_sample_theta, _, _ = generate_encoder(x, k, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+                                                                              ## ce qui est plus grand que prévu, il faut slicer correctement
 
-            z_sample_theta, _, _ = generate_encoder(x, K, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
-                                                                            ## ce qui est plus grand que prévu, il faut slicer correctement
-
-            weights_array = weights(x, z_sample_theta[:K], theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta[:k], theta, noised_A, noised_b)
                 
-            IWAE_K = [np.log(np.mean(weights_array))]
+            l_hat_sum_k = (1/k)*np.sum(weights_array)
+
+            IWAE_K = np.log(l_hat_sum_k)
 
             IWAE.append(IWAE_K)
     
         return np.mean(IWAE)
+
+
 
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
     
@@ -186,8 +188,9 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
 
         SUMO.append(SUMO_K)
 
-
     return np.mean(SUMO)
+
+
 
 def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
 
