@@ -140,18 +140,18 @@ def true_grad(x, theta):
     #return -0.5 * (x - theta*np.ones(20))
     return -0.5*(x.mean() - theta)
 
-def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations):
+def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
         
         IWAE = []
 
         for _ in range(n_simulations):
 
-            z_sample_theta, _, _ = generate_encoder(x, k_IAWE, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
-                                                                              ## ce qui est plus grand que prévu, il faut slicer correctement
+            z_sample_theta, _, _ = generate_encoder(x, int(np.log(k_IWAE)/np.log(2)), noised_A, noised_b) ## attention, quand k_IWAE = 20 on en tire 2**21
+                                                                                ## Or, on en veut que k_IWAE
 
-            weights_array = weights(x, z_sample_theta[:k_IAWE], theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta[:k_IWAE], theta, noised_A, noised_b)
                 
-            l_hat_sum_k = (1/k_IAWE)*np.sum(weights_array)
+            l_hat_sum_k = (1/k_IWAE)*np.sum(weights_array)
 
             IWAE_K = np.log(l_hat_sum_k)
 
@@ -261,7 +261,7 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
 
     return np.mean(RR)
 
-def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IAWE, methode='SUMO'):
+def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IWAE = 5, methode='SUMO'):
 
     theta_min = theta_true - 5  # Limite inférieure de la plage
     theta_max = theta_true + 5 # Limite supérieure de la plage
@@ -326,7 +326,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IAWE,
 
         for theta in theta_values:
 
-            estimated_likelihood.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
+            estimated_likelihood.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations))
             
             # Effectuer une tâche
             time.sleep(0.01)
@@ -351,7 +351,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IAWE,
 
             estimated_likelihood[2].append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
 
-            estimated_likelihood[3].append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
+            estimated_likelihood[3].append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations))
             
 
             # Effectuer une tâche
@@ -420,7 +420,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IAWE,
 
     return 
 
-def grad_IWAE(r, x, noised_A, noised_b, theta, n_simulations):
+def grad_IWAE(r, x, noised_A, noised_b, theta, k_IWAE, n_simulations):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta - 5  # Limite inférieure de la plage
@@ -433,7 +433,7 @@ def grad_IWAE(r, x, noised_A, noised_b, theta, n_simulations):
     ## on caclue les valeurs de SUMO sur cette plage de valeurs
     for i in range(len(theta_values)):
 
-        IWAE_values.append(log_likelihood_IWAE(r, theta, x, noised_A, noised_b, n_simulations))
+        IWAE_values.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations))
 
     gradient_IWAE = np.gradient(IWAE_values, theta_values)
 
@@ -498,8 +498,8 @@ def grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations):
 
     return gradient_ML_SS
 
-def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='SUMO'):
-    
+def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, k_IWAE = 5):
+    # On fixe k_IWAE pour éviter de le passer en argument à chaque fois + methode non fixée pour éviter d'afficher 'SUMO' dans le titre
     theta_min = theta_true - 5  # Limite inférieure de la plage
     theta_max = theta_true + 5 # Limite supérieure de la plage
     num_points = 60  # Nombre de points à générer
@@ -519,7 +519,7 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='
 
     elif methode == 'IWAE': 
 
-        estimated_grad = grad_IWAE(r, x, noised_A, noised_b, theta_true, n_simulations)
+        estimated_grad = grad_IWAE(r, x, noised_A, noised_b, theta_true, k_IWAE, n_simulations)
 
     #elif methode == 'all': 
                 
@@ -550,7 +550,8 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='
     # Affichage de la figure
     fig.show()
 
-def plot_errors_likelihood(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, n_runs, methode='SUMO'):
+def plot_errors_likelihood(r, theta, x, noised_A, noised_b, n_simulations, n_runs, k_IWAE = 5, methode='SUMO'):
+    #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
     # Définition des valeurs initiales
     theta_min = theta - 5
     theta_max = theta + 5
@@ -573,13 +574,13 @@ def plot_errors_likelihood(r, theta, x, noised_A, noised_b, k_IAWE, n_simulation
             progress_bar.update(1)
         progress_bar.close()
 
-    if methode == 'IAWE':
+    if methode == 'IWAE':
         # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
         progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
         for theta in theta_values:
             likelihoods = []
             for _ in range(n_runs):
-                likelihoods.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
+                likelihoods.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations))
             estimated_likelihood.append(likelihoods)
             time.sleep(0.01)
             progress_bar.update(1)
@@ -638,3 +639,29 @@ def plot_errors_likelihood(r, theta, x, noised_A, noised_b, k_IAWE, n_simulation
 
     return None
 
+def plot_bias_likelihood(x, theta_true, noised_A, noised_b, n_simulations, k_IWAE = 5): 
+
+    # Définition des valeurs initiales
+    cost_min = 6
+    cost_max = 384
+    step = 6
+    cost_values = np.arange(cost_min, cost_max, step)
+
+    #Calcul de la vraisemblance vraie
+    param_true = true_likelihood(x, theta_true)
+
+    bias = [], [], [], []
+
+    for i in range(len(cost_values)):
+
+            bias[0].append((log_likelihood_SUMO(1/cost_values[i], theta_true, x, noised_A, noised_b, n_simulations) - param_true)^2)
+
+            bias[1].append((log_likelihood_ML_SS(1/cost_values[i], theta_true, x, noised_A, noised_b, n_simulations) - param_true)^2)
+
+            bias[2].append((log_likelihood_ML_RR(1/cost_values[i], theta_true, x, noised_A, noised_b, n_simulations) - param_true)^2) 
+
+            bias[3].append((log_likelihood_IWAE(theta_true, x, noised_A, noised_b, k_IWAE, n_simulations) - param_true)^2)
+
+        #print("Pour r = "+str(cost_values[i])+" le biais est de "+str(bias))
+    
+    return bias
