@@ -614,14 +614,55 @@ def plot_uncertainty(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num
 
     errors = [ref_value - res[i] for i in range(num_runs)]
 
-    fig = go.Figure()
+    # Calculer la moyenne et la dispersion des erreurs
+    mean_error = np.mean(errors)
+    error_std = np.std(errors)
 
-    fig.add_trace(go.Box(y=errors))
-    fig.update_layout(
-        title='Distribution des erreurs sur différentes exécutions',
-        xaxis_title='Exécutions',
-        yaxis_title='Erreur'
+    # Créer le trace pour les valeurs calculées
+    calculated_trace = go.Scatter(
+        x=np.arange(1, num_runs + 1),
+        y=res,
+        mode='markers',
+        name='Valeurs calculées'
     )
+
+    # Créer le trace pour la valeur de référence
+    reference_trace = go.Scatter(
+        x=np.arange(1, num_runs + 1),
+        y=ref_value,
+        mode='lines',
+        name='Valeur de référence'
+    )
+
+    # Créer la figure
+    fig = go.Figure(data=[calculated_trace, reference_trace])
+
+    # Afficher la moyenne et la dispersion des erreurs
+    fig.add_annotation(
+        x=1,
+        y=ref_value,
+        text=f'Moyenne des erreurs: {mean_error:.4f}<br>Écart-type des erreurs: {error_std:.4f}',
+        showarrow=False,
+        font=dict(size=12),
+        align='left'
+    )
+
+    # Mise en forme du graphique
+    fig.update_layout(
+        title='Comparaison des valeurs calculées avec la valeur de référence',
+        xaxis_title='Runs',
+        yaxis_title='Valeurs',
+        legend=dict(
+            x=0,
+            y=1,
+            bgcolor='rgba(255, 255, 255, 0.5)',
+            bordercolor='rgba(0, 0, 0, 0.4)',
+            borderwidth=1
+        )
+    )
+
+    # Afficher le graphique
+    fig.show()
 
     fig.show()
 
