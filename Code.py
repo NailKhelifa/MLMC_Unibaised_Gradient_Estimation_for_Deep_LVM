@@ -615,7 +615,7 @@ def compute_errors(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num_r
             res.append(grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations))
             ref_value = true_grad(x, theta)
 
-    errors = [ref_value - res[i] for i in range(num_runs)]
+    errors = [res[i] - ref_value for i in range(num_runs)]
 
     return errors
 
