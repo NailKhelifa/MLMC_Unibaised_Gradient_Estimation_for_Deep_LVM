@@ -643,6 +643,8 @@ def overall_errors(r, theta_true, x, noised_A, noised_b, k_IAWE, n_simulations, 
 
     progress_bar.close()
 
+    return overall_errors
+
 def plot_error_boxplots(overall_error, theta_values):
     # Créer une liste pour stocker les traces de chaque boxplot
     boxplots = []
