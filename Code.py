@@ -284,10 +284,6 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IAWE,
             # Mettre à jour la barre de progression
             progress_bar.update(1)
 
-            
-
-        true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
-    
         progress_bar.close()
 
 
@@ -554,119 +550,91 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='
     # Affichage de la figure
     fig.show()
 
-def compute_errors(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, methode='log_likelihood_SUMO'):
-
-    res = []
-    ref_value = 0
-
-    if methode == 'log_likelihood_SUMO':
-
-        for _ in range(num_runs):
-
-            res.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
-            ref_value = true_likelihood(x, theta)
-
-    if methode == 'log_likelihood_IAWE':
-
-        for _ in range(num_runs):
-
-            res.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
-            ref_value = true_likelihood(x, theta)
-
-    if methode == 'log_likelihood_ML_SS':
-
-        for _ in range(num_runs):
-            
-            res.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
-            ref_value = true_likelihood(x, theta)
-
-    if methode == 'log_likelihood_ML_RR':
-
-        for _ in range(num_runs):
-
-            res.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
-            ref_value = true_likelihood(x, theta)
-
-    if methode == 'grad_IWAE':
-
-        for _ in range(num_runs):
-
-            res.append(grad_IWAE(r, x, noised_A, noised_b, theta, n_simulations))
-            ref_value = true_grad(x, theta)
-
-    if methode == 'grad_SUMO':
-
-        for _ in range(num_runs):
-
-            res.append(grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
-            ref_value = true_grad(x, theta)
-
-    if methode == 'grad_ML_RR':
-
-        for _ in range(num_runs):
-
-            res.append(grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations))
-            ref_value = true_grad(x, theta)
-
-    if methode == 'grad_ML_SS':
-
-        for _ in range(num_runs):
-
-            res.append(grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations))
-            ref_value = true_grad(x, theta)
-
-    errors = [res[i] - ref_value for i in range(num_runs)]
-
-    return errors
-
-def overall_errors(r, theta_true, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, methode='log_likelihood_SUMO'):
-
-    theta_min = theta_true - 5  # Limite inférieure de la plage
-    theta_max = theta_true + 5 # Limite supérieure de la plage
-    num_points = 30  # Nombre de points à générer
+def plot_errors_likelihood(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, n_runs, methode='SUMO'):
+    # Définition des valeurs initiales
+    theta_min = theta - 5
+    theta_max = theta + 5
+    num_points = 30
     theta_values = np.linspace(theta_min, theta_max, num_points)
-    overall_errors = []
+    n_runs = 5  # Nombre de lancements du programme
+    true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
 
-    progress_bar = tqdm(total=num_points, desc='Progression', position=0)
-
-
-    for theta in theta_values:
-
-        errors = compute_errors(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, methode='log_likelihood_ML_SS')
-        overall_errors.append(errors)
-
-        # Effectuer une tâche
-        time.sleep(0.01) 
-
-        # Mettre à jour la barre de progression
-        progress_bar.update(1)
-
-    progress_bar.close()
-
-    return overall_errors
-
-def plot_error_boxplots(overall_error, theta_values):
-    # Créer une liste pour stocker les traces de chaque boxplot
-    boxplots = []
+    estimated_likelihood = []
     
-    # Pour chaque liste d'erreurs associée à un paramètre
-    for i, errors in enumerate(overall_error):
-        # Créer un boxplot pour cette liste d'erreurs
-        boxplot = go.Box(y=errors, name=f'Theta = {theta_values[i]}')
-        # Ajouter le boxplot à la liste des traces
-        boxplots.append(boxplot)
-    
-    # Créer la figure avec les boxplots
-    fig = go.Figure(data=boxplots)
-    
-    # Mettre à jour le layout du graphique
-    fig.update_layout(
-        title='Distribution des erreurs pour différents paramètres',
-        xaxis_title='Paramètres (Theta)',
-        yaxis_title='Erreur',
-        width=2000,  # Largeur du graphique en pixels
-        height=700,  # Hauteur du graphique en pixels
-    )
-    
-    # Afficher le graphique
-    fig.show()
+    if methode == 'SUMO':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    if methode == 'IAWE':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    if methode == 'ML_SS':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    if methode == 'ML_RR':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    # Création de la figure
+    plt.figure(figsize=(15, 8))
+
+    # Tracé de la vraisemblance réelle
+    plt.plot(theta_values, true_likelihood_values, color='blue', label='Vraisemblance réelle')
+
+    # Tracé de la vraisemblance estimée
+    plt.scatter(theta_values, [np.median(x) for x in estimated_likelihood], color='red', label='Estimation moyenne')
+
+    # Ajout des boxplots
+    plt.boxplot(estimated_likelihood, positions=theta_values, widths=0.1, showfliers=False, patch_artist=True, notch=False, showmeans=True, boxprops=dict(facecolor='orange'))
+
+    # Ligne verticale pour la valeur de theta vrai
+    plt.axvline(x=theta, color='black', linestyle='--', label=f'Theta={theta}')
+
+    # Mise en forme de la figure
+    plt.title('Estimation de la vraisemblance par SUMO avec incertitude')
+    plt.xlabel('Theta')
+    plt.ylabel('Vraisemblance')
+    plt.legend()
+    plt.grid(True)
+    plt.xticks(np.arange(min(theta_values), max(theta_values)+1, 2))
+
+
+    # Affichage de la figure
+    plt.show()
+
+    return None
+
