@@ -140,18 +140,18 @@ def true_grad(x, theta):
     #return -0.5 * (x - theta*np.ones(20))
     return -0.5*(x.mean() - theta)
 
-def log_likelihood_IWAE(theta, x, noised_A, noised_b, k, n_simulations):
+def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations):
         
         IWAE = []
 
         for _ in range(n_simulations):
 
-            z_sample_theta, _, _ = generate_encoder(x, k, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+            z_sample_theta, _, _ = generate_encoder(x, k_IAWE, noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
                                                                               ## ce qui est plus grand que prévu, il faut slicer correctement
 
-            weights_array = weights(x, z_sample_theta[:k], theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta[:k_IAWE], theta, noised_A, noised_b)
                 
-            l_hat_sum_k = (1/k)*np.sum(weights_array)
+            l_hat_sum_k = (1/k_IAWE)*np.sum(weights_array)
 
             IWAE_K = np.log(l_hat_sum_k)
 
@@ -548,3 +548,81 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='
 
     # Affichage de la figure
     fig.show()
+
+
+
+def plot_uncertainty(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, method='log_likelihood_SUMO'):
+
+    res = []
+    ref_value = 0
+
+    if method == 'log_likelihood_SUMO':
+
+        for _ in range(num_runs):
+
+            res.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
+            ref_value = true_likelihood(x, theta)
+
+    if method == 'log_likelihood_IAWE':
+
+        for _ in range(num_runs):
+
+            res.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
+            ref_value = true_likelihood(x, theta)
+
+    if method == 'log_likelihood_ML_SS':
+
+        for _ in range(num_runs):
+            
+            res.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
+            ref_value = true_likelihood(x, theta)
+
+    if method == 'log_likelihood_ML_RR':
+
+        for _ in range(num_runs):
+
+            res.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
+            ref_value = true_likelihood(x, theta)
+
+    if method == 'grad_IWAE':
+
+        for _ in range(num_runs):
+
+            res.append(grad_IWAE(r, x, noised_A, noised_b, theta, n_simulations))
+            ref_value = true_grad(x, theta)
+
+    if method == 'grad_SUMO':
+
+        for _ in range(num_runs):
+
+            res.append(grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
+            ref_value = true_grad(x, theta)
+
+    if method == 'grad_ML_RR':
+
+        for _ in range(num_runs):
+
+            res.append(grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations))
+            ref_value = true_grad(x, theta)
+
+    if method == 'grad_ML_SS':
+
+        for _ in range(num_runs):
+
+            res.append(grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations))
+            ref_value = true_grad(x, theta)
+
+    errors = [ref_value - res[i] for i in range(num_runs)]
+
+    fig = go.Figure()
+
+    fig.add_trace(go.Box(y=errors))
+    fig.update_layout(
+        title='Distribution des erreurs sur différentes exécutions',
+        xaxis_title='Exécutions',
+        yaxis_title='Erreur'
+    )
+
+    fig.show()
+
+    return 
