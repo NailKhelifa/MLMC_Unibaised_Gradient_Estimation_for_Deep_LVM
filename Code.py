@@ -271,20 +271,25 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IAWE,
     progress_bar = tqdm(total=num_points, desc='Progression', position=0)
 
     if methode == 'SUMO':
-
+    
         estimated_likelihood = []
 
         for theta in theta_values:
 
             estimated_likelihood.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
-
+    
             # Effectuer une tâche
-            time.sleep(0.01)
-            
+            time.sleep(0.01) 
+
             # Mettre à jour la barre de progression
             progress_bar.update(1)
 
+            
+
+        true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
+    
         progress_bar.close()
+
 
     elif methode == 'ML_SS':
 
@@ -549,63 +554,61 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode='
     # Affichage de la figure
     fig.show()
 
-
-
-def plot_uncertainty(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, method='log_likelihood_SUMO'):
+def compute_errors(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, methode='log_likelihood_SUMO'):
 
     res = []
     ref_value = 0
 
-    if method == 'log_likelihood_SUMO':
+    if methode == 'log_likelihood_SUMO':
 
         for _ in range(num_runs):
 
             res.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
             ref_value = true_likelihood(x, theta)
 
-    if method == 'log_likelihood_IAWE':
+    if methode == 'log_likelihood_IAWE':
 
         for _ in range(num_runs):
 
             res.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IAWE, n_simulations))
             ref_value = true_likelihood(x, theta)
 
-    if method == 'log_likelihood_ML_SS':
+    if methode == 'log_likelihood_ML_SS':
 
         for _ in range(num_runs):
             
             res.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
             ref_value = true_likelihood(x, theta)
 
-    if method == 'log_likelihood_ML_RR':
+    if methode == 'log_likelihood_ML_RR':
 
         for _ in range(num_runs):
 
             res.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
             ref_value = true_likelihood(x, theta)
 
-    if method == 'grad_IWAE':
+    if methode == 'grad_IWAE':
 
         for _ in range(num_runs):
 
             res.append(grad_IWAE(r, x, noised_A, noised_b, theta, n_simulations))
             ref_value = true_grad(x, theta)
 
-    if method == 'grad_SUMO':
+    if methode == 'grad_SUMO':
 
         for _ in range(num_runs):
 
             res.append(grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
             ref_value = true_grad(x, theta)
 
-    if method == 'grad_ML_RR':
+    if methode == 'grad_ML_RR':
 
         for _ in range(num_runs):
 
             res.append(grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations))
             ref_value = true_grad(x, theta)
 
-    if method == 'grad_ML_SS':
+    if methode == 'grad_ML_SS':
 
         for _ in range(num_runs):
 
@@ -614,56 +617,54 @@ def plot_uncertainty(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num
 
     errors = [ref_value - res[i] for i in range(num_runs)]
 
-    # Calculer la moyenne et la dispersion des erreurs
-    mean_error = np.mean(errors)
-    error_std = np.std(errors)
+    return errors
 
-    # Créer le trace pour les valeurs calculées
-    calculated_trace = go.Scatter(
-        x=np.arange(1, num_runs + 1),
-        y=res,
-        mode='markers',
-        name='Valeurs calculées'
-    )
+def overall_errors(r, theta_true, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, methode='log_likelihood_SUMO'):
 
-    # Créer le trace pour la valeur de référence
-    reference_trace = go.Scatter(
-        x=np.arange(1, num_runs + 1),
-        y=ref_value,
-        mode='lines',
-        name='Valeur de référence'
-    )
+    theta_min = theta_true - 5  # Limite inférieure de la plage
+    theta_max = theta_true + 5 # Limite supérieure de la plage
+    num_points = 60  # Nombre de points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+    overall_errors = []
 
-    # Créer la figure
-    fig = go.Figure(data=[calculated_trace, reference_trace])
+    progress_bar = tqdm(total=num_points, desc='Progression', position=0)
 
-    # Afficher la moyenne et la dispersion des erreurs
-    fig.add_annotation(
-        x=1,
-        y=ref_value,
-        text=f'Moyenne des erreurs: {mean_error:.4f}<br>Écart-type des erreurs: {error_std:.4f}',
-        showarrow=False,
-        font=dict(size=12),
-        align='left'
-    )
 
-    # Mise en forme du graphique
+    for theta in theta_values:
+
+        errors = compute_errors(r, theta, x, noised_A, noised_b, k_IAWE, n_simulations, num_runs, methode='log_likelihood_ML_SS')
+        overall_errors.append(errors)
+
+        # Effectuer une tâche
+        time.sleep(0.01) 
+
+        # Mettre à jour la barre de progression
+        progress_bar.update(1)
+
+    progress_bar.close()
+
+def plot_error_boxplots(overall_error, theta_values):
+    # Créer une liste pour stocker les traces de chaque boxplot
+    boxplots = []
+    
+    # Pour chaque liste d'erreurs associée à un paramètre
+    for i, errors in enumerate(overall_error):
+        # Créer un boxplot pour cette liste d'erreurs
+        boxplot = go.Box(y=errors, name=f'Theta = {theta_values[i]}')
+        # Ajouter le boxplot à la liste des traces
+        boxplots.append(boxplot)
+    
+    # Créer la figure avec les boxplots
+    fig = go.Figure(data=boxplots)
+    
+    # Mettre à jour le layout du graphique
     fig.update_layout(
-        title='Comparaison des valeurs calculées avec la valeur de référence',
-        xaxis_title='Runs',
-        yaxis_title='Valeurs',
-        legend=dict(
-            x=0,
-            y=1,
-            bgcolor='rgba(255, 255, 255, 0.5)',
-            bordercolor='rgba(0, 0, 0, 0.4)',
-            borderwidth=1
-        )
+        title='Distribution des erreurs pour différents paramètres',
+        xaxis_title='Paramètres (Theta)',
+        yaxis_title='Erreur',
+        width=2000,  # Largeur du graphique en pixels
+        height=700,  # Hauteur du graphique en pixels
     )
-
+    
     # Afficher le graphique
     fig.show()
-
-    fig.show()
-
-    return 
