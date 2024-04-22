@@ -625,7 +625,7 @@ def plot_errors_likelihood(r, theta, x, noised_A, noised_b, k_IAWE, n_simulation
     plt.axvline(x=theta, color='black', linestyle='--', label=f'Theta={theta}')
 
     # Mise en forme de la figure
-    plt.title('Estimation de la vraisemblance par SUMO avec incertitude')
+    plt.title(f'Estimation de la vraisemblance par {methode} avec incertitude pour {n_runs} répétitions')
     plt.xlabel('Theta')
     plt.ylabel('Vraisemblance')
     plt.legend()
