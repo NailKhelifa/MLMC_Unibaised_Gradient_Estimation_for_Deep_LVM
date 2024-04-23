@@ -684,10 +684,10 @@ def plot_errors_likelihood(r, theta, x, noised_A, noised_b, n_simulations, n_run
 
     return None
 
-def plot_bias_likelihood(r, x, theta_true, noised_A, noised_b, n_simulations_min, n_simulations_max, plot_type = 'bias', k_IWAE = 5): 
+def plot_bias_variance_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, plot_type = 'bias', k_IWAE = 5): 
 
-    step = 5
-    simus = np.arange(n_simulations_min, n_simulations_max, step)
+    nb_points = 20
+    cost_values = np.linspace(cost_min, cost_max, nb_points) #Probablement dans le mauvais sens pour le coût computationnel
 
     #Calcul de la vraisemblance vraie
     param_true = true_likelihood(x, theta_true)
@@ -696,21 +696,19 @@ def plot_bias_likelihood(r, x, theta_true, noised_A, noised_b, n_simulations_min
 
         bias = [], [], [], [] 
 
-        for n_simus in range(len(simus)):
-
-            n_simus = int(n_simus)
+        for cost in cost_values:
 
             log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
 
-            for i in range(10): #On pourra intégrer le nombre de répétitions aux paramètres si besoin
+            for i in range(1): #On pourra intégrer le nombre de répétitions aux paramètres si besoin -> moyenne des estimateurs à chaque pas
 
-                log_SUMO.append(log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simus))
+                log_SUMO.append(log_likelihood_SUMO(cost, theta_true, x, noised_A, noised_b, n_simulations))
 
-                log_ML_SS.append(log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simus))
+                log_ML_SS.append(log_likelihood_ML_SS(cost, theta_true, x, noised_A, noised_b, n_simulations))
 
-                log_ML_RR.append(log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simus))
+                log_ML_RR.append(log_likelihood_ML_RR(cost, theta_true, x, noised_A, noised_b, n_simulations))
 
-                log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, k_IWAE, n_simus))
+                log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, int(1 / cost), n_simulations))
 
             bias[0].append((np.mean(log_SUMO) - param_true)**2)
 
@@ -724,19 +722,19 @@ def plot_bias_likelihood(r, x, theta_true, noised_A, noised_b, n_simulations_min
         fig = go.Figure()
 
         # Ajouter les courbes des biais
-        fig.add_trace(go.Scatter(x=simus, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
-        fig.add_trace(go.Scatter(x=simus, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
-        fig.add_trace(go.Scatter(x=simus, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
-        fig.add_trace(go.Scatter(x=simus, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
+        fig.add_trace(go.Scatter(x=cost_values, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
+        fig.add_trace(go.Scatter(x=cost_values, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
+        fig.add_trace(go.Scatter(x=cost_values, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
+        fig.add_trace(go.Scatter(x=cost_values, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
 
         #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
                     #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
 
         # Mise en forme de la figure
         fig.update_layout(
-            xaxis=dict(title='Nombre de simulations'),
+            xaxis=dict(title='r'),
             yaxis=dict(title="Biais de l'estimateur"),
-            title=f'Comparaison du biais des estimateurs de la vraisemblance en fonction du nombre de simulations',
+            title=f'Comparaison du biais des estimateurs de la vraisemblance en fonction de la complexité computationnelle',
             legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
             showlegend=True
         )
@@ -744,7 +742,7 @@ def plot_bias_likelihood(r, x, theta_true, noised_A, noised_b, n_simulations_min
         # Affichage de la figure
         fig.show()
 
-    elif plot_type == 'variance' :
+    elif plot_type == 'variance' : #Pour l'instant on essaye déjà de faire marcher le biais avant de s'attaquer à la variance
                 
         variance = [], [], [], []
 
