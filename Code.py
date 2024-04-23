@@ -137,8 +137,7 @@ def true_likelihood(x, theta):
 
 def true_grad(x, theta):
 
-    #return -0.5 * (x - theta*np.ones(20))
-    return -0.5*(x.mean() - theta)
+    return 10*(x.mean() - theta)
 
 def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
         
@@ -323,6 +322,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IWAE 
 
         estimated_likelihood = []
 
+
         for theta in theta_values:
 
             estimated_likelihood.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations))
@@ -341,6 +341,7 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IWAE 
 
         methodes = ['IWAE', 'ML_SS', 'ML_RR', 'SUMO']
         
+
         for theta in theta_values:
             
             estimated_likelihood[0].append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
@@ -519,55 +520,8 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
 
         estimated_grad = grad_IWAE(r, x, noised_A, noised_b, theta_true, k_IWAE, n_simulations)
 
-    elif methode == 'all': 
-        
-        estimated_grad = [[], [], [], []]
-
-        estimated_grad[0] = grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations)
-        estimated_grad[1] = grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations)   
-        estimated_grad[2] = grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations)
-        estimated_grad[3] = grad_IWAE(r, x, noised_A, noised_b, theta_true, k_IWAE, n_simulations)
-        
-        ##On plot la figure directement dans le if 
-        true_gradient_values = [true_grad(x, theta) for theta in theta_values]
-
-        # Créer la figure
-        fig = go.Figure()
-
-        # Ajouter la vraie valeur du gradient
-        fig.add_trace(go.Scatter(x=theta_values, y=true_gradient_values, mode='lines', name='True Gradient', line=dict(color='red')))
-
-        # Ajouter les estimations du gradient 
-        fig.add_trace(go.Scatter(x=theta_values, y=estimated_grad[0], mode='markers', name='ML_SS', marker=dict(color='purple', symbol='x')))
-        fig.add_trace(go.Scatter(x=theta_values, y=estimated_grad[1], mode='markers', name='ML_RR', marker=dict(color='orange', symbol='x')))
-        fig.add_trace(go.Scatter(x=theta_values, y=estimated_grad[2], mode='markers', name='SUMO', marker=dict(color='green', symbol='x')))
-        fig.add_trace(go.Scatter(x=theta_values, y=estimated_grad[3], mode='markers', name='IWAE', marker=dict(color='yellow', symbol='x')))
-
-        # Ajouter la ligne verticale pour la vraie valeur de theta
-        min_grad = 0
-        max_grad = 0
-        for i in range(len(estimated_grad)) : 
-            min_grad = min(min(estimated_grad[i]), min_grad) 
-            max_grad = max(max(estimated_grad[i]), max_grad)
-
-        fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min_grad),
-                    y1=max(max(true_gradient_values), max_grad), line=dict(color='black', width=2, dash='dash'),
-                    name=f'theta={theta_true}')
-
-        # Mise en forme de la figure
-        fig.update_layout(
-            xaxis=dict(title='Theta'),
-            yaxis=dict(title='Gradient'),
-            title=f'Comparaison des estimateurs du gradient',
-            legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
-            showlegend=True
-        )
-
-        # Affichage de la figure
-        fig.show()
-
-        return
-
+    #elif methode == 'all': 
+                
     true_gradient_values = [true_grad(x, theta) for theta in theta_values]
 
     # Créer la figure
@@ -595,11 +549,11 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
     # Affichage de la figure
     fig.show()
 
-def plot_errors_likelihood(r, theta, x, noised_A, noised_b, n_simulations, n_runs, k_IWAE = 5, methode='SUMO'):
+def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, k_IWAE = 5, methode='SUMO'):
     #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
     # Définition des valeurs initiales
-    theta_min = theta - 5
-    theta_max = theta + 5
+    theta_min = theta_true - 5
+    theta_max = theta_true + 5
     num_points = 30
     theta_values = np.linspace(theta_min, theta_max, num_points)
     n_runs = 5  # Nombre de lancements du programme
@@ -667,8 +621,8 @@ def plot_errors_likelihood(r, theta, x, noised_A, noised_b, n_simulations, n_run
     # Ajout des boxplots
     plt.boxplot(estimated_likelihood, positions=theta_values, widths=0.1, showfliers=False, patch_artist=True, notch=False, showmeans=True, boxprops=dict(facecolor='orange'))
 
-    # Ligne verticale pour la valeur de theta vrai
-    plt.axvline(x=theta, color='black', linestyle='--', label=f'Theta={theta}')
+    # Ligne verticale pour la valeur de theta_true vrai
+    plt.axvline(x=theta_true, color='black', linestyle='--', label=f'Theta={theta_true}')
 
     # Mise en forme de la figure
     plt.title(f'Estimation de la vraisemblance par {methode} avec incertitude pour {n_runs} répétitions')
@@ -684,115 +638,29 @@ def plot_errors_likelihood(r, theta, x, noised_A, noised_b, n_simulations, n_run
 
     return None
 
-def plot_bias_variance_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, plot_type = 'bias', k_IWAE = 5): 
+def plot_bias_likelihood(x, theta_true, noised_A, noised_b, n_simulations, k_IWAE = 5): 
 
-    nb_points = 20
-    cost_values = np.linspace(cost_min, cost_max, nb_points) #Probablement dans le mauvais sens pour le coût computationnel
+    # Définition des valeurs initiales
+    cost_min = 6
+    cost_max = 384
+    step = 6
+    cost_values = np.arange(cost_min, cost_max, step)
 
     #Calcul de la vraisemblance vraie
     param_true = true_likelihood(x, theta_true)
 
-    if plot_type == 'bias' :
+    bias = [], [], [], []
 
-        bias = [], [], [], [] 
+    for i in range(len(cost_values)):
 
-        for cost in cost_values:
+            bias[0].append((log_likelihood_SUMO(1/cost_values[i], theta_true, x, noised_A, noised_b, n_simulations) - param_true)^2)
 
-            log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
+            bias[1].append((log_likelihood_ML_SS(1/cost_values[i], theta_true, x, noised_A, noised_b, n_simulations) - param_true)^2)
 
-            for i in range(1): #On pourra intégrer le nombre de répétitions aux paramètres si besoin -> moyenne des estimateurs à chaque pas
+            bias[2].append((log_likelihood_ML_RR(1/cost_values[i], theta_true, x, noised_A, noised_b, n_simulations) - param_true)^2) 
 
-                log_SUMO.append(log_likelihood_SUMO(cost, theta_true, x, noised_A, noised_b, n_simulations))
+            bias[3].append((log_likelihood_IWAE(theta_true, x, noised_A, noised_b, k_IWAE, n_simulations) - param_true)^2)
 
-                log_ML_SS.append(log_likelihood_ML_SS(cost, theta_true, x, noised_A, noised_b, n_simulations))
-
-                log_ML_RR.append(log_likelihood_ML_RR(cost, theta_true, x, noised_A, noised_b, n_simulations))
-
-                log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, int(1 / cost), n_simulations))
-
-            bias[0].append((np.mean(log_SUMO) - param_true)**2)
-
-            bias[1].append((np.mean(log_ML_SS) - param_true)**2)
-
-            bias[2].append((np.mean(log_ML_RR) - param_true)**2) 
-
-            bias[3].append((np.mean(log_IWAE) - param_true)**2)
-
-        # Créer la figure
-        fig = go.Figure()
-
-        # Ajouter les courbes des biais
-        fig.add_trace(go.Scatter(x=cost_values, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
-        fig.add_trace(go.Scatter(x=cost_values, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
-        fig.add_trace(go.Scatter(x=cost_values, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
-        fig.add_trace(go.Scatter(x=cost_values, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
-
-        #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
-                    #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
-
-        # Mise en forme de la figure
-        fig.update_layout(
-            xaxis=dict(title='r'),
-            yaxis=dict(title="Biais de l'estimateur"),
-            title=f'Comparaison du biais des estimateurs de la vraisemblance en fonction de la complexité computationnelle',
-            legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
-            showlegend=True
-        )
-
-        # Affichage de la figure
-        fig.show()
-
-    elif plot_type == 'variance' : #Pour l'instant on essaye déjà de faire marcher le biais avant de s'attaquer à la variance
-                
-        variance = [], [], [], []
-
-        for n_simus in range(len(simus)):
-
-            n_simus = int(n_simus)
-
-            log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
-
-            for i in range(10): #On pourra intégrer le nombre de répétitions aux paramètres si besoin
-
-                log_SUMO.append(log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simus))
-
-                log_ML_SS.append(log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simus))
-
-                log_ML_RR.append(log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simus))
-
-                log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, k_IWAE, n_simus))
-                
-            variance[0].append(np.std(log_SUMO) / np.sqrt(10))
-
-            variance[1].append(np.std(log_ML_SS) / np.sqrt(10))
-
-            variance[2].append(np.std(log_ML_RR) / np.sqrt(10))
-
-            variance[3].append(np.std(log_IWAE) / np.sqrt(10))
-
-        # Créer la figure
-        fig = go.Figure()
-
-        # Ajouter les courbes des biais
-        fig.add_trace(go.Scatter(x=simus, y=variance[0], mode='lines', name='SUMO', line=dict(color='green')))
-        fig.add_trace(go.Scatter(x=simus, y=variance[1], mode='lines', name='ML_SS', line=dict(color='purple')))
-        fig.add_trace(go.Scatter(x=simus, y=variance[2], mode='lines', name='ML_RR', line=dict(color='orange')))
-        fig.add_trace(go.Scatter(x=simus, y=variance[3], mode='lines', name='IWAE', line=dict(color='yellow')))
-
-        #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
-                    #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
-
-        # Mise en forme de la figure
-        fig.update_layout(
-            xaxis=dict(title='Nombre de simulations'),
-            yaxis=dict(title="Variance de l'estimateur"),
-            title=f'Comparaison de la variance des estimateurs de la vraisemblance en fonction du nombre de simulations',
-            legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
-            showlegend=True
-        )
-
-        # Affichage de la figure
-        fig.show()
+        #print("Pour r = "+str(cost_values[i])+" le biais est de "+str(bias))
     
-    return
-                               
+    return bias
