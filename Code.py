@@ -698,21 +698,27 @@ def plot_bias_likelihood(r, x, theta_true, noised_A, noised_b, n_simulations_min
 
         for n_simus in range(len(simus)):
 
-            log_SUMO = log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simus)
+            n_simus = int(n_simus)
 
-            log_ML_SS = log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simus)
+            log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
 
-            log_ML_RR = log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simus)
+            for i in range(10): #On pourra intégrer le nombre de répétitions aux paramètres si besoin
 
-            log_IWAE = log_likelihood_IWAE(theta_true, x, noised_A, noised_b, k_IWAE, n_simus)
+                log_SUMO.append(log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simus))
 
-            bias[0].append((log_SUMO - param_true)**2)
+                log_ML_SS.append(log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simus))
 
-            bias[1].append((log_ML_SS - param_true)**2)
+                log_ML_RR.append(log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simus))
 
-            bias[2].append((log_ML_RR - param_true)**2) 
+                log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, k_IWAE, n_simus))
 
-            bias[3].append((log_IWAE - param_true)**2)
+            bias[0].append((np.mean(log_SUMO) - param_true)**2)
+
+            bias[1].append((np.mean(log_ML_SS) - param_true)**2)
+
+            bias[2].append((np.mean(log_ML_RR) - param_true)**2) 
+
+            bias[3].append((np.mean(log_IWAE) - param_true)**2)
 
         # Créer la figure
         fig = go.Figure()
