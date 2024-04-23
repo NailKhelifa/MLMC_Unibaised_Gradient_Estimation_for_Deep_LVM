@@ -220,8 +220,6 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
         ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
         SS.append(I_0 + (Delta_theta_K/(((1-r)**(K-1))*r)))
 
-
-
     return np.mean(SS)
 
 def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
@@ -443,7 +441,10 @@ def grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations):
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
     ## on caclue les valeurs de SUMO sur cette plage de valeurs
-    SUMO_values = [log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations) for theta in theta_values]
+    SUMO_values = []
+
+    for theta in theta_values:
+        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
 
     gradient_SUMO = np.gradient(SUMO_values)
 
