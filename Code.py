@@ -604,7 +604,7 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
 
     elif methode == 'IWAE': 
 
-        estimated_grad = grad_IWAE(r, x, noised_A, noised_b, theta_true, k_IWAE, n_simulations)
+        estimated_grad = grad_IWAE(x, noised_A, noised_b, theta_true, k_IWAE, n_simulations)
 
     #elif methode == 'all': 
         
