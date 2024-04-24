@@ -509,7 +509,7 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
     theta_min = theta_true - 5  # Limite inférieure de la plage
     theta_max = theta_true + 5 # Limite supérieure de la plage
     step = 0.2
-    num_points = (theta_max - theta_min) / step  # 50 points à générer
+    num_points = int((theta_max - theta_min) / step)  # 50 points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
                 
     true_gradient_values = [true_grad(x, theta) for theta in theta_values]
@@ -633,9 +633,10 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
     # Définition des valeurs initiales
     theta_min = theta_true - 5
     theta_max = theta_true + 5
-    num_points = 30
+    step = 0.2
+    num_points = int((theta_max - theta_min) / step)
     theta_values = np.linspace(theta_min, theta_max, num_points)
-    n_runs = 5  # Nombre de lancements du programme
+
     true_gradient_values = [true_grad(x, theta) for theta in theta_values]
 
     estimated_grad = []
