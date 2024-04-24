@@ -422,7 +422,8 @@ def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations):
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta - 5  # Limite inférieure de la plage
     theta_max = theta + 5 # Limite supérieure de la plage
-    num_points = 30  # Nombre de points à générer
+    step = 0.2
+    num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
     ## on caclue les valeurs de IWAE sur cette plage de valeurs
@@ -432,12 +433,13 @@ def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations):
 
     return gradient_IWAE
 
-def grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations):
+def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations):
 
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta - 5  # Limite inférieure de la plage
-    theta_max = theta + 5 # Limite supérieure de la plage
-    num_points = 30  # Nombre de points à générer
+    theta_min = theta_true - 5  # Limite inférieure de la plage
+    theta_max = theta_true + 5 # Limite supérieure de la plage
+    step = 0.2
+    num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
     ## on caclue les valeurs de SUMO sur cette plage de valeurs
@@ -450,12 +452,13 @@ def grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations):
 
     return gradient_SUMO
 
-def grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations):
+def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations):
 
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta - 5  # Limite inférieure de la plage
-    theta_max = theta + 5 # Limite supérieure de la plage
-    num_points = 30  # Nombre de points à générer
+    theta_min = theta_true - 5  # Limite inférieure de la plage
+    theta_max = theta_true + 5 # Limite supérieure de la plage
+    step = 0.2
+    num_points = int((theta_max - theta_min) / step)
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
     ## on caclue les valeurs de ML_RR sur cette plage de valeurs
@@ -465,12 +468,13 @@ def grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations):
 
     return gradient_ML_RR
     
-def grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations):
+def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations):
 
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta - 5  # Limite inférieure de la plage
-    theta_max = theta + 5 # Limite supérieure de la plage
-    num_points = 30  # Nombre de points à générer
+    theta_min = theta_true - 5  # Limite inférieure de la plage
+    theta_max = theta_true + 5 # Limite supérieure de la plage
+    step = 0.2
+    num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
     ## on caclue les valeurs de ML_SS sur cette plage de valeurs
@@ -482,10 +486,6 @@ def grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations):
 
 def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, k_IWAE = 5):
     # On fixe k_IWAE pour éviter de le passer en argument à chaque fois + methode non fixée pour éviter d'afficher 'SUMO' dans le titre
-    theta_min = theta_true - 5  # Limite inférieure de la plage
-    theta_max = theta_true + 5 # Limite supérieure de la plage
-    num_points = 60  # Nombre de points à générer
-    theta_values = np.linspace(theta_min, theta_max, num_points)
 
     if methode == 'SUMO':
 
@@ -504,6 +504,13 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
         estimated_grad = grad_IWAE(r, x, noised_A, noised_b, theta_true, k_IWAE, n_simulations)
 
     #elif methode == 'all': 
+        
+    # On récupère la plage de valeur sur laquelle on évalue
+    theta_min = theta_true - 5  # Limite inférieure de la plage
+    theta_max = theta_true + 5 # Limite supérieure de la plage
+    step = 0.2
+    num_points = (theta_max - theta_min) / step  # 50 points à générer
+    theta_values = np.linspace(theta_min, theta_max, num_points)
                 
     true_gradient_values = [true_grad(x, theta) for theta in theta_values]
 
@@ -532,7 +539,7 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
     # Affichage de la figure
     fig.show()
 
-def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, k_IWAE = 5, methode='SUMO'):
+def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, methode, k_IWAE = 5):
     #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
     # Définition des valeurs initiales
     theta_min = theta_true - 5
@@ -736,3 +743,5 @@ def plot_bias_likelihood(x, theta_true, noised_A, noised_b, n_simulations, k_IWA
         #print("Pour r = "+str(cost_values[i])+" le biais est de "+str(bias))
     
     return bias
+
+
