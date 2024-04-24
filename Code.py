@@ -25,6 +25,10 @@ except ImportError:
         print(f"Error installing tqdm package: {e}")
         sys.exit(1)
 
+#####################################################################################################################################
+###################################################### FONCTIONS FONDAMENTALES ######################################################
+#####################################################################################################################################
+
 def joint_probability(theta, dim=20):
     """
     ---------------------------------------------------------------------------------------------------------------------
@@ -138,6 +142,11 @@ def true_likelihood(x, theta):
 def true_grad(x, theta):
 
     return 10*(x.mean() - theta)
+
+#####################################################################################################################################
+################################################## ESTIMATION DE LA VRAISEMBLANCE ###################################################
+#####################################################################################################################################
+
 
 def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
         
@@ -417,6 +426,100 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IWAE 
 
     return 
 
+def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, methode, k_IWAE = 5):
+    #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
+    # Définition des valeurs initiales
+    theta_min = theta_true - 5
+    theta_max = theta_true + 5
+    num_points = 30
+    theta_values = np.linspace(theta_min, theta_max, num_points)
+    n_runs = 5  # Nombre de lancements du programme
+    true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
+
+    estimated_likelihood = []
+    
+    if methode == 'SUMO':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    if methode == 'IWAE':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    if methode == 'ML_SS':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    if methode == 'ML_RR':
+        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
+        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
+        for theta in theta_values:
+            likelihoods = []
+            for _ in range(n_runs):
+                likelihoods.append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
+            estimated_likelihood.append(likelihoods)
+            time.sleep(0.01)
+            progress_bar.update(1)
+        progress_bar.close()
+
+    # Création de la figure
+    plt.figure(figsize=(15, 8))
+
+    # Tracé de la vraisemblance réelle
+    plt.plot(theta_values, true_likelihood_values, color='blue', label='Vraisemblance réelle')
+
+    # Tracé de la vraisemblance estimée
+    plt.scatter(theta_values, [np.median(x) for x in estimated_likelihood], color='red', label='Estimation moyenne')
+
+    # Ajout des boxplots
+    plt.boxplot(estimated_likelihood, positions=theta_values, widths=0.1, showfliers=False, patch_artist=True, notch=False, showmeans=True, boxprops=dict(facecolor='orange'))
+
+    # Ligne verticale pour la valeur de theta_true vrai
+    plt.axvline(x=theta_true, color='black', linestyle='--', label=f'Theta={theta_true}')
+
+    # Mise en forme de la figure
+    plt.title(f'Estimation de la vraisemblance par {methode} avec incertitude pour {n_runs} répétitions')
+    plt.xlabel('Theta')
+    plt.ylabel('Vraisemblance')
+    plt.legend()
+    plt.grid(True)
+    plt.xticks(np.arange(min(theta_values), max(theta_values)+1, 2))
+
+
+    # Affichage de la figure
+    plt.show()
+
+    return None
+
+#####################################################################################################################################
+###################################################### ESTIMATION DU GRADIENT #######################################################
+#####################################################################################################################################
+
+
 def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations):
 
     ## on se donne d'abord une plage de valeurs pour theta
@@ -539,95 +642,6 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
     # Affichage de la figure
     fig.show()
 
-def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, methode, k_IWAE = 5):
-    #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
-    # Définition des valeurs initiales
-    theta_min = theta_true - 5
-    theta_max = theta_true + 5
-    num_points = 30
-    theta_values = np.linspace(theta_min, theta_max, num_points)
-    n_runs = 5  # Nombre de lancements du programme
-    true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
-
-    estimated_likelihood = []
-    
-    if methode == 'SUMO':
-        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
-        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
-        for theta in theta_values:
-            likelihoods = []
-            for _ in range(n_runs):
-                likelihoods.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations))
-            estimated_likelihood.append(likelihoods)
-            time.sleep(0.01)
-            progress_bar.update(1)
-        progress_bar.close()
-
-    if methode == 'IWAE':
-        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
-        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
-        for theta in theta_values:
-            likelihoods = []
-            for _ in range(n_runs):
-                likelihoods.append(log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations))
-            estimated_likelihood.append(likelihoods)
-            time.sleep(0.01)
-            progress_bar.update(1)
-        progress_bar.close()
-
-    if methode == 'ML_SS':
-        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
-        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
-        for theta in theta_values:
-            likelihoods = []
-            for _ in range(n_runs):
-                likelihoods.append(log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations))
-            estimated_likelihood.append(likelihoods)
-            time.sleep(0.01)
-            progress_bar.update(1)
-        progress_bar.close()
-
-    if methode == 'ML_RR':
-        # Calcul des vraisemblances estimées et stockage des résultats pour chaque exécution
-        progress_bar = tqdm(total=len(theta_values), desc='Progression', position=0)
-        for theta in theta_values:
-            likelihoods = []
-            for _ in range(n_runs):
-                likelihoods.append(log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations))
-            estimated_likelihood.append(likelihoods)
-            time.sleep(0.01)
-            progress_bar.update(1)
-        progress_bar.close()
-
-    # Création de la figure
-    plt.figure(figsize=(15, 8))
-
-    # Tracé de la vraisemblance réelle
-    plt.plot(theta_values, true_likelihood_values, color='blue', label='Vraisemblance réelle')
-
-    # Tracé de la vraisemblance estimée
-    plt.scatter(theta_values, [np.median(x) for x in estimated_likelihood], color='red', label='Estimation moyenne')
-
-    # Ajout des boxplots
-    plt.boxplot(estimated_likelihood, positions=theta_values, widths=0.1, showfliers=False, patch_artist=True, notch=False, showmeans=True, boxprops=dict(facecolor='orange'))
-
-    # Ligne verticale pour la valeur de theta_true vrai
-    plt.axvline(x=theta_true, color='black', linestyle='--', label=f'Theta={theta_true}')
-
-    # Mise en forme de la figure
-    plt.title(f'Estimation de la vraisemblance par {methode} avec incertitude pour {n_runs} répétitions')
-    plt.xlabel('Theta')
-    plt.ylabel('Vraisemblance')
-    plt.legend()
-    plt.grid(True)
-    plt.xticks(np.arange(min(theta_values), max(theta_values)+1, 2))
-
-
-    # Affichage de la figure
-    plt.show()
-
-    return None
-
 def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, k_IWAE = 5, methode='SUMO'):
     #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
     # Définition des valeurs initiales
@@ -718,6 +732,11 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
 
     return None
 
+
+#####################################################################################################################################
+###################################################### ANLAYSE BIAIS-VARIANCE #######################################################
+#####################################################################################################################################
+
 def plot_bias_likelihood(x, theta_true, noised_A, noised_b, n_simulations, k_IWAE = 5): 
 
     # Définition des valeurs initiales
@@ -745,4 +764,9 @@ def plot_bias_likelihood(x, theta_true, noised_A, noised_b, n_simulations, k_IWA
     
     return bias
 
+
+
+#####################################################################################################################################
+###################################################### PARTIE DU CODE POUR SGD ######################################################
+#####################################################################################################################################
 
