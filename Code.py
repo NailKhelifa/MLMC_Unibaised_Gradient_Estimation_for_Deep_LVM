@@ -151,7 +151,7 @@ def true_grad(x, theta):
 def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
         
         IWAE = []
-
+        progress_bar = tqdm(total=n_simulations, desc=f'Progression IWAE ({k_IWAE} échantillons)', position=0)
         for _ in range(n_simulations):
 
             z_sample_theta, _, _ = generate_encoder(x, int(np.log(k_IWAE)/np.log(2)), noised_A, noised_b) ## attention, quand k_IWAE = 20 on en tire 2**21
@@ -164,106 +164,229 @@ def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
             IWAE_K = np.log(l_hat_sum_k)
 
             IWAE.append(IWAE_K)
-    
+
+            time.sleep(0.01)
+            progress_bar.update(1) 
+
+        progress_bar.close()  
         return np.mean(IWAE)
 
-def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations):
+def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
     
     SUMO = []
-
+    progress_bar = tqdm(total=n_simulations, desc=f'Progression SUMO ({discrete_k + 2} échantillons)', position=0)
     # Initialize tqdm with the total number of simulations        
-    for _ in range(n_simulations):
+    if discrete_k is not None: 
 
-        K = np.random.geometric(p=r)
+        for _ in range(n_simulations):
 
-        ## ATTENTION VERIFIER QUEL DELTAKSUMO ON PREND
-        z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
-                                                                            ## ce qui est plus grand que prévu, il faut slicer correctement
+            K = discrete_k
 
-        weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
-            
-        I_0 = np.mean([np.log(weights_array)])
-    
-        ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
-        Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
+            ## ATTENTION VERIFIER QUEL DELTAKSUMO ON PREND
+            z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+                                                                                ## ce qui est plus grand que prévu, il faut slicer correctement
 
-        SUMO_K = I_0
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            I_0 = np.mean([np.log(weights_array)])
         
-        for j in range(1, K):
-            SUMO_K += Delta_theta(j)/((1-r)**j)
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
+            Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
 
-        SUMO.append(SUMO_K)
+            SUMO_K = I_0
+            
+            for j in range(1, K):
+                SUMO_K += Delta_theta(j)/((1-r)**j)
 
+            SUMO.append(SUMO_K)
+
+            time.sleep(0.01)
+            progress_bar.update(1)
+
+        progress_bar.close()
+
+    else: 
+
+        for _ in range(n_simulations):
+
+            K = np.random.geometric(p=r)
+
+            ## ATTENTION VERIFIER QUEL DELTAKSUMO ON PREND
+            z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+                                                                                ## ce qui est plus grand que prévu, il faut slicer correctement
+
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            I_0 = np.mean([np.log(weights_array)])
+        
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
+            Delta_theta = lambda j: np.log(np.mean(weights_array[:j+2])) - np.log(np.mean(weights_array[:j+1]))
+
+            SUMO_K = I_0
+            
+            for j in range(1, K):
+                SUMO_K += Delta_theta(j)/((1-r)**j)
+
+            SUMO.append(SUMO_K)
+
+            time.sleep(0.01)
+            progress_bar.update(1)
+
+        progress_bar.close()
     return np.mean(SUMO)
 
-def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations):
+def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
 
     SS = []
+    progress_bar = tqdm(total=n_simulations, desc=f'Progression ML_SS (2^{discrete_k} échantillons)', position=0)
 
-    for _ in range(n_simulations):
+    if discrete_k is not None:
 
-        ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
-        K = np.random.geometric(p=r)
+        for _ in range(n_simulations):
 
-        ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
-        z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+            ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
+            K = discrete_k
 
-        ## Étape 3 : on construit les vecteurs de poids
-        weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
-        weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
-        weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
-        #weights_array_odd = np.log(z_sample_odd_theta) # impairs
-        #weights_array_even = np.log(z_sample_even_theta) # pairs
+            ## Étape 3 : on construit les vecteurs de poids
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
 
-        I_0 = np.mean([np.log(weights_array)])
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(z_sample_odd_theta) # impairs
+            #weights_array_even = np.log(z_sample_even_theta) # pairs
 
-        l_odd = np.log(np.mean(np.exp(np.log(weights_array_odd))))
-        l_even = np.log(np.mean(np.exp(np.log(weights_array_even))))
-        l_odd_and_even = np.log(np.mean(np.exp(np.log(weights_array))))
+            I_0 = np.mean([np.log(weights_array)])
 
-        ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
-        Delta_theta_K = l_odd_and_even - 0.5 * (l_odd + l_even)
+            l_odd = np.log(np.mean(np.exp(np.log(weights_array_odd))))
+            l_even = np.log(np.mean(np.exp(np.log(weights_array_even))))
+            l_odd_and_even = np.log(np.mean(np.exp(np.log(weights_array))))
 
-        ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
-        ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
-        SS.append(I_0 + (Delta_theta_K/(((1-r)**(K-1))*r)))
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_theta_K = l_odd_and_even - 0.5 * (l_odd + l_even)
 
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            SS.append(I_0 + (Delta_theta_K/(((1-r)**(K-1))*r)))
+            time.sleep(0.01)
+            progress_bar.update(1)
+
+        progress_bar.close()
+
+    else: 
+
+        for _ in range(n_simulations):
+
+            ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
+            K = np.random.geometric(p=r)
+
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+
+            ## Étape 3 : on construit les vecteurs de poids
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(z_sample_odd_theta) # impairs
+            #weights_array_even = np.log(z_sample_even_theta) # pairs
+
+            I_0 = np.mean([np.log(weights_array)])
+
+            l_odd = np.log(np.mean(np.exp(np.log(weights_array_odd))))
+            l_even = np.log(np.mean(np.exp(np.log(weights_array_even))))
+            l_odd_and_even = np.log(np.mean(np.exp(np.log(weights_array))))
+
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_theta_K = l_odd_and_even - 0.5 * (l_odd + l_even)
+
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            SS.append(I_0 + (Delta_theta_K/(((1-r)**(K-1))*r)))
+            time.sleep(0.01)
+            progress_bar.update(1)
+
+        progress_bar.close()
     return np.mean(SS)
 
-def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations):
+def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
 
     RR = []
+    progress_bar = tqdm(total=n_simulations, desc=f'Progression ML_RR (2^{discrete_k} échantillons)', position=0)
 
-    for _ in range(n_simulations):
+    if discrete_k is not None:
+            
+        for _ in range(n_simulations):
 
-        ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
-        K = np.random.geometric(p=r)
+            ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
+            K = discrete_k
 
-        ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
-        z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
-        ## Étape 3 : on construit les vecteurs de poids
-        weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            ## Étape 3 : on construit les vecteurs de poids
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
 
-        weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
-        weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
-        #weights_array_odd = np.log(weights_array[1::2])
-        #weights_array_even = np.log(weights_array[::2])
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(weights_array[1::2])
+            #weights_array_even = np.log(weights_array[::2])
 
-        I_0 = np.mean([np.log(weights_array)])
+            I_0 = np.mean([np.log(weights_array)])
 
-        l_odd = lambda j : np.log(np.mean(np.exp(np.log(weights_array_odd[:2**(j)]))))
-        l_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array_even[:2**(j)]))))
-        l_odd_and_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array[:2**(j+1)]))))
+            l_odd = lambda j : np.log(np.mean(np.exp(np.log(weights_array_odd[:2**(j)]))))
+            l_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array_even[:2**(j)]))))
+            l_odd_and_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array[:2**(j+1)]))))
 
-        ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
-        Delta_theta = lambda j: l_odd_and_even(j) - 0.5 * (l_odd(j) + l_even(j))
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_theta = lambda j: l_odd_and_even(j) - 0.5 * (l_odd(j) + l_even(j))
 
-        ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
-        ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
-        #RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
-        RR.append(I_0 + Delta_theta(0) + sum(Delta_theta(j)/sum((1-r)**(i-1)*r for i in range(j, K+1)) for j in range(1, K+1)))
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            #RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
+            RR.append(I_0 + Delta_theta(0) + sum(Delta_theta(j)/sum((1-r)**(i-1)*r for i in range(j, K+1)) for j in range(1, K+1)))
+
+            time.sleep(0.01)
+            progress_bar.update(1)
+
+        progress_bar.close()
+
+    else: 
+        
+        for _ in range(n_simulations):
+
+            ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
+            K = np.random.geometric(p=r)
+
+            ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+
+            ## Étape 3 : on construit les vecteurs de poids
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            #weights_array_odd = np.log(weights_array[1::2])
+            #weights_array_even = np.log(weights_array[::2])
+
+            I_0 = np.mean([np.log(weights_array)])
+
+            l_odd = lambda j : np.log(np.mean(np.exp(np.log(weights_array_odd[:2**(j)]))))
+            l_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array_even[:2**(j)]))))
+            l_odd_and_even = lambda j : np.log(np.mean(np.exp(np.log(weights_array[:2**(j+1)]))))
+
+            ## on se donne un delta particulier, celui qui correspond par définition à la méthode RR
+            Delta_theta = lambda j: l_odd_and_even(j) - 0.5 * (l_odd(j) + l_even(j))
+
+            ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
+            ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
+            #RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
+            RR.append(I_0 + Delta_theta(0) + sum(Delta_theta(j)/sum((1-r)**(i-1)*r for i in range(j, K+1)) for j in range(1, K+1)))
+
+            time.sleep(0.01)
+            progress_bar.update(1)
+
+        progress_bar.close()
 
     return np.mean(RR)
 
@@ -749,45 +872,36 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
 ###################################################### ANLAYSE BIAIS-VARIANCE #######################################################
 #####################################################################################################################################
 
-def plot_bias_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, nb_points): #On ne met pas k_IWAE car on le fait 
+def plot_bias_likelihood(x, theta_true, noised_A, noised_b, k_max, n_simulations): #On ne met pas k_IWAE car on le fait 
                                                                                                 ##varier dans la fonction 
 
-    #nb_points = 30
-    cost_values = np.linspace(cost_max, cost_min, nb_points) #r est l'inverse de l'expected computational cost 
+
+    k_values = list(range(1, k_max+1))
 
     #Calcul de la vraisemblance vraie
     param_true = true_likelihood(x, theta_true)
 
     bias = [], [], [], [] 
     
-    progress_bar = tqdm(total=len(cost_values * 4), desc='Progression', position=0)
-    for cost in cost_values:
+    r = 0.6 
 
-        #A priori cette boucle est inutile car cela vient rajouter des simulations (même rôle que n_simus)
+    progress_bar = tqdm(total=len(k_values * 4), desc='Progression', position=0)
+    for discrete_k in k_values:
 
-        #log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
+        print(f" \n Étape : {discrete_k} / {k_max} \n")
 
-        #for i in range(1): #A priori cette boucle est inutile car cela vient rajouter des simulations (même rôle que n_simus)
-
-        #log_SUMO.append(log_likelihood_SUMO(cost, theta_true, x, noised_A, noised_b, n_simulations))
-
-        #log_ML_SS.append(log_likelihood_ML_SS(cost, theta_true, x, noised_A, noised_b, n_simulations))
-
-        #log_ML_RR.append(log_likelihood_ML_RR(cost, theta_true, x, noised_A, noised_b, n_simulations))
-
-        #og_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, int(1 / cost), n_simulations))
-
-        bias[0].append((log_likelihood_SUMO(cost, theta_true, x, noised_A, noised_b, n_simulations) - param_true)**2)
+        bias[0].append((log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k) - param_true)**2)
         progress_bar.update(1)
         
-        bias[1].append((log_likelihood_ML_SS(cost, theta_true, x, noised_A, noised_b, n_simulations) - param_true)**2)
+        bias[1].append((log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k) - param_true)**2)
         progress_bar.update(1)
 
-        bias[2].append((log_likelihood_ML_RR(cost, theta_true, x, noised_A, noised_b, n_simulations) - param_true)**2) 
+        bias[2].append((log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k) - param_true)**2) 
         progress_bar.update(1)
 
-        bias[3].append((log_likelihood_IWAE(theta_true, x, noised_A, noised_b, int(1/cost), n_simulations) - param_true)**2)
+        bias[3].append((log_likelihood_IWAE(theta_true, x, noised_A, noised_b, discrete_k, n_simulations) - param_true)**2)
         progress_bar.update(1)
+
 
     progress_bar.close()
 
@@ -795,10 +909,10 @@ def plot_bias_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_max, 
     fig = go.Figure()
 
     # Ajouter les courbes des biais
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
 
     #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
                 #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
@@ -806,7 +920,7 @@ def plot_bias_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_max, 
     # Mise en forme de la figure
     fig.update_layout(
         xaxis=dict(title='Expected Computational Cost'),
-        yaxis=dict(title="Biais de l'estimateur"),
+        yaxis=dict(title="Biais de l'estimateur", range=[None, 100]),
         title=f'Comparaison du biais des estimateurs de la vraisemblance en fonction de la complexité computationnelle',
         legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
         showlegend=True
@@ -881,7 +995,7 @@ def plot_variance_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_m
 
         log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
 
-        for i in range(num_iterations): 
+        for _ in range(num_iterations): 
 
             log_SUMO.append(log_likelihood_SUMO(cost, theta_true, x, noised_A, noised_b, n_simulations))
 
