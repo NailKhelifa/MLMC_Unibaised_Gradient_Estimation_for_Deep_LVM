@@ -650,7 +650,7 @@ def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, one_shot = Fa
 
     return gradient_IWAE
 
-def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False):
+def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False, discrete_k=None):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -666,13 +666,13 @@ def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = Fa
     SUMO_values = []
 
     for theta in theta_values:
-        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
+        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations, discrete_k=discrete_k))
 
     gradient_SUMO = np.gradient(SUMO_values)
 
     return gradient_SUMO
 
-def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False):
+def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False, discrete_k=None):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -685,13 +685,13 @@ def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = F
         theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_RR sur cette plage de valeurs
-    ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations) for theta in theta_values]
+    ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations, discrete_k=discrete_k) for theta in theta_values]
 
     gradient_ML_RR = np.gradient(ML_RR_values)
 
     return gradient_ML_RR
     
-def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False):
+def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False, discrete_k=None):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -704,7 +704,7 @@ def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = F
         theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_SS sur cette plage de valeurs
-    ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations) for theta in theta_values]
+    ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations, discrete_k=discrete_k) for theta in theta_values]
 
     gradient_ML_SS = np.gradient(ML_SS_values)
 
@@ -917,30 +917,31 @@ def plot_bias_likelihood(x, theta_true, noised_A, noised_b, k_max, n_simulations
     # Affichage de la figure
     fig.show()
 
-def plot_bias_gradient(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, nb_points): #On ne met pas k_IWAE car on le fait 
+def plot_bias_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulations): #On ne met pas k_IWAE car on le fait 
                                                                                                 ##varier dans la fonction 
 
-    #nb_points = 30
-    cost_values = np.linspace(cost_max, cost_min, nb_points) #r est l'inverse de l'expected computational cost 
+    k_values = list(range(1, k_max+1)) 
+
+    r = 0.6
 
     #Calcul de la vraisemblance vraie
     param_true = true_grad(x, theta_true)
 
     bias = [], [], [], [] 
     
-    progress_bar = tqdm(total=len(cost_values * 4), desc='Progression', position=0)
-    for cost in cost_values:
+    progress_bar = tqdm(total=len(k_values * 4), desc='Progression', position=0)
+    for discrete_k in k_values:
 
-        bias[0].append((grad_SUMO(cost, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True) - param_true)**2)
+        bias[0].append((grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k=discrete_k) - param_true)**2)
         progress_bar.update(1)
         
-        bias[1].append((grad_ML_SS(cost, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True) - param_true)**2)
+        bias[1].append((grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k=discrete_k) - param_true)**2)
         progress_bar.update(1)
 
-        bias[2].append((grad_ML_RR(cost, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True) - param_true)**2) 
+        bias[2].append((grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k=discrete_k) - param_true)**2) 
         progress_bar.update(1)
 
-        bias[3].append((grad_IWAE(x, noised_A, noised_b, theta_true, int(1/cost), n_simulations, one_shot = True) - param_true)**2)
+        bias[3].append((grad_IWAE(x, noised_A, noised_b, theta_true, discrete_k, n_simulations, one_shot = True) - param_true)**2)
         progress_bar.update(1)
 
     progress_bar.close()
@@ -970,45 +971,54 @@ def plot_bias_gradient(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_
     fig.show()
 
 
-def plot_variance_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, nb_points, num_iterations):
+def plot_variance_likelihood(x, theta_true, noised_A, noised_b, k_max, n_simulations, num_iterations):
 
-    cost_values = np.linspace(cost_max, cost_min, nb_points) #r est l'inverse de l'expected computational cost 
+    k_values = list(range(1, k_max+1)) 
+
+    r = 0.6
 
     #Calcul de la vraisemblance vraie
-    param_true = true_likelihood(x, theta_true)
+    #param_true = true_likelihood(x, theta_true)
                 
     variance = [], [], [], []
 
-    for cost in cost_values:
+    progress_bar = tqdm(total=len(k_values * 4), desc='Progression', position=0)
+    for discrete_k in k_values:
 
         log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
 
         for _ in range(num_iterations): 
 
-            log_SUMO.append(log_likelihood_SUMO(cost, theta_true, x, noised_A, noised_b, n_simulations))
+            log_SUMO.append(log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simulations))
 
-            log_ML_SS.append(log_likelihood_ML_SS(cost, theta_true, x, noised_A, noised_b, n_simulations))
+            log_ML_SS.append(log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simulations))
 
-            log_ML_RR.append(log_likelihood_ML_RR(cost, theta_true, x, noised_A, noised_b, n_simulations))
+            log_ML_RR.append(log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simulations))
 
-            log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, int(1/cost), n_simulations))
+            log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, discrete_k, n_simulations))
             
         variance[0].append(np.std(log_SUMO) / np.sqrt(num_iterations))
+        progress_bar.update(1)
 
         variance[1].append(np.std(log_ML_SS) / np.sqrt(num_iterations))
+        progress_bar.update(1)
 
         variance[2].append(np.std(log_ML_RR) / np.sqrt(num_iterations))
+        progress_bar.update(1)
 
         variance[3].append(np.std(log_IWAE) / np.sqrt(num_iterations))
+        progress_bar.update(1)
+    
+    progress_bar.close()
 
     # Créer la figure
     fig = go.Figure()
 
     # Ajouter les courbes des biais
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[0], mode='lines', name='SUMO', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[1], mode='lines', name='ML_SS', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[2], mode='lines', name='ML_RR', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[3], mode='lines', name='IWAE', line=dict(color='yellow')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[0], mode='lines', name='SUMO', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[1], mode='lines', name='ML_SS', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[2], mode='lines', name='ML_RR', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[3], mode='lines', name='IWAE', line=dict(color='yellow')))
 
     #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
                 #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
@@ -1028,37 +1038,46 @@ def plot_variance_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_m
     return
 
 
-def plot_variance_gradient(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, nb_points, num_iterations):
+def plot_variance_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulations, num_iterations):
 
-    cost_values = np.linspace(cost_max, cost_min, nb_points) #r est l'inverse de l'expected computational cost 
+    k_values = list(range(1, k_max+1))
 
     #Calcul de la vraisemblance vraie
-    param_true = true_grad(x, theta_true)
+    #param_true = true_grad(x, theta_true)
                 
     variance = [], [], [], []
 
-    for cost in cost_values:
+    r = 0.6
+    
+    progress_bar = tqdm(total=len(k_values * 4), desc='Progression', position=0)
+    for discrete_k in k_values:
 
         gradi_SUMO, gradi_ML_SS, gradi_ML_RR, gradi_IWAE = [], [], [], []
 
         for i in range(num_iterations): 
 
-            gradi_SUMO.append(grad_SUMO(cost, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
+            gradi_SUMO.append(grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k))
 
-            gradi_ML_SS.append(grad_ML_SS(cost, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
+            gradi_ML_SS.append(grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
 
-            gradi_ML_RR.append(grad_ML_RR(cost, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
+            gradi_ML_RR.append(grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
 
-            gradi_IWAE.append(grad_IWAE(x, noised_A, noised_b, theta_true, int(1/cost), n_simulations, one_shot = True))
+            gradi_IWAE.append(grad_IWAE(x, noised_A, noised_b, theta_true, discrete_k, n_simulations, one_shot = True))
             
         variance[0].append(np.std(gradi_SUMO) / np.sqrt(num_iterations))
+        progress_bar.update(1)
 
         variance[1].append(np.std(gradi_ML_SS) / np.sqrt(num_iterations))
+        progress_bar.update(1)
 
         variance[2].append(np.std(gradi_ML_RR) / np.sqrt(num_iterations))
+        progress_bar.update(1)
 
         variance[3].append(np.std(gradi_IWAE) / np.sqrt(num_iterations))
+        progress_bar.update(1)
 
+    progress_bar.close()
+    
     # Créer la figure
     fig = go.Figure()
 
