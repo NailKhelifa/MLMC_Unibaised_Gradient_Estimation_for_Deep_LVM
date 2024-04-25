@@ -113,14 +113,13 @@ def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_en
     ## POUR
     return z_sample , z_odd, z_even #AX_b #On return AX_b pour pouvoir les utiliser dans la fonction de décodage
 
-def weights(x, z_sample, theta, A, b): #Question sur ce theta qui est censé être theta estimé sur X_data ? 
+def weights(x, z_sample, theta, A, b, dim=20): #Question sur ce theta qui est censé être theta estimé sur X_data ? 
 
-    dimension = 20
 
     # Parameters
     AX_b = np.dot(A, x) + b
-    I = np.eye(dimension)
-    theta_mean = theta*np.ones(dimension)
+    I = np.eye(dim)
+    theta_mean = theta*np.ones(dim)
     weights = []
     
     for z in z_sample:
@@ -148,7 +147,7 @@ def true_grad(x, theta):
 #####################################################################################################################################
 
 
-def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
+def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations, dim=20):
         
         IWAE = []
         progress_bar = tqdm(total=n_simulations, desc=f'Progression IWAE ({k_IWAE} échantillons)', position=0)
@@ -157,7 +156,7 @@ def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
             z_sample_theta, _, _ = generate_encoder(x, int(np.log(k_IWAE)/np.log(2)), noised_A, noised_b) ## attention, quand k_IWAE = 20 on en tire 2**21
                                                                                 ## Or, on en veut que k_IWAE
 
-            weights_array = weights(x, z_sample_theta[:k_IWAE], theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta[:k_IWAE], theta, noised_A, noised_b, dim)
                 
             l_hat_sum_k = (1/k_IWAE)*np.sum(weights_array)
 
@@ -171,7 +170,7 @@ def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
         progress_bar.close()  
         return np.mean(IWAE)
 
-def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
+def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, dim=20, discrete_k=None):
     
     SUMO = []
     
@@ -186,7 +185,7 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, discrete
             z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
                                                                                 ## ce qui est plus grand que prévu, il faut slicer correctement
 
-            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
             I_0 = np.mean([np.log(weights_array)])
         
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
@@ -229,7 +228,7 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, discrete
 
     return np.mean(SUMO)
 
-def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
+def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, dim=20, discrete_k=None):
 
     SS = []
 
@@ -245,10 +244,10 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, discret
             z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
             ## Étape 3 : on construit les vecteurs de poids
-            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
 
-            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
-            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b, dim)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b, dim)
             #weights_array_odd = np.log(z_sample_odd_theta) # impairs
             #weights_array_even = np.log(z_sample_even_theta) # pairs
 
@@ -302,7 +301,7 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, discret
 
     return np.mean(SS)
 
-def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
+def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, dim=20, discrete_k=None):
 
     RR = []
 
@@ -317,10 +316,10 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, discret
             z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
 
             ## Étape 3 : on construit les vecteurs de poids
-            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
 
-            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
-            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b, dim)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b, dim)
             #weights_array_odd = np.log(weights_array[1::2])
             #weights_array_even = np.log(weights_array[::2])
 
@@ -631,7 +630,7 @@ def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, 
 #####################################################################################################################################
 
 
-def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, one_shot = False):
+def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, dim=20, one_shot = False):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta - 5  # Limite inférieure de la plage
@@ -644,13 +643,13 @@ def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, one_shot = Fa
         theta_values = [theta] 
 
     ## on caclue les valeurs de IWAE sur cette plage de valeurs
-    IWAE_values = [log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations) for theta in theta_values]
+    IWAE_values = [log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations, dim) for theta in theta_values]
 
     gradient_IWAE = np.gradient(IWAE_values)
 
     return gradient_IWAE
 
-def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False):
+def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_shot = False):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -666,13 +665,13 @@ def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = Fa
     SUMO_values = []
 
     for theta in theta_values:
-        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
+        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations, dim))
 
     gradient_SUMO = np.gradient(SUMO_values)
 
     return gradient_SUMO
 
-def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False):
+def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_shot = False):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -685,13 +684,13 @@ def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = F
         theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_RR sur cette plage de valeurs
-    ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations) for theta in theta_values]
+    ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations, dim) for theta in theta_values]
 
     gradient_ML_RR = np.gradient(ML_RR_values)
 
     return gradient_ML_RR
     
-def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = False):
+def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_shot = False):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -704,30 +703,30 @@ def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = F
         theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_SS sur cette plage de valeurs
-    ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations) for theta in theta_values]
+    ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations, dim) for theta in theta_values]
 
     gradient_ML_SS = np.gradient(ML_SS_values)
 
     return gradient_ML_SS
 
-def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, k_IWAE = 5):
+def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, dim=20, k_IWAE = 5):
     # On fixe k_IWAE pour éviter de le passer en argument à chaque fois + methode non fixée pour éviter d'afficher 'SUMO' dans le titre
 
     if methode == 'SUMO':
 
-        estimated_grad = grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations)
+        estimated_grad = grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim)
 
     elif methode == 'ML_SS':
 
-        estimated_grad = grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations)
+        estimated_grad = grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim)
 
     elif methode == 'ML_RR': 
 
-        estimated_grad = grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations)
+        estimated_grad = grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim)
 
     elif methode == 'IWAE': 
 
-        estimated_grad = grad_IWAE(x, noised_A, noised_b, theta_true, k_IWAE, n_simulations)
+        estimated_grad = grad_IWAE(x, noised_A, noised_b, theta_true, k_IWAE, n_simulations, dim)
 
     #elif methode == 'all': 
         
@@ -765,7 +764,7 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
     # Affichage de la figure
     fig.show()
 
-def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, k_IWAE = 5, methode='SUMO'):
+def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, dim=20, k_IWAE = 5, methode='SUMO'):
     #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
     # Définition des valeurs initiales
     theta_min = theta_true - 5
@@ -784,7 +783,7 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
         for theta in theta_values:
             grad = []
             for _ in range(n_runs):
-                grad.append(grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations))
+                grad.append(grad_SUMO(r, x, noised_A, noised_b, theta, n_simulations, dim))
             estimated_grad.append(grad)
             time.sleep(0.01)
             progress_bar.update(1)
@@ -796,7 +795,7 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
         for theta in theta_values:
             grad = []
             for _ in range(n_runs):
-                grad.append(grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations))
+                grad.append(grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, dim))
             estimated_grad.append(grad)
             time.sleep(0.01)
             progress_bar.update(1)
@@ -808,7 +807,7 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
         for theta in theta_values:
             grad = []
             for _ in range(n_runs):
-                grad.append(grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations))
+                grad.append(grad_ML_SS(r, x, noised_A, noised_b, theta, n_simulations, dim))
             estimated_grad.append(grad)
             time.sleep(0.01)
             progress_bar.update(1)
@@ -820,7 +819,7 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
         for theta in theta_values:
             grad = []
             for _ in range(n_runs):
-                grad.append(grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations))
+                grad.append(grad_ML_RR(r, x, noised_A, noised_b, theta, n_simulations, dim))
             estimated_grad.append(grad)
             time.sleep(0.01)
             progress_bar.update(1)
@@ -860,7 +859,7 @@ def plot_errors_gradient(r, theta_true, x, noised_A, noised_b, n_simulations, n_
 ###################################################### ANLAYSE BIAIS-VARIANCE #######################################################
 #####################################################################################################################################
 
-def plot_bias_likelihood(x, theta_true, noised_A, noised_b, k_max, n_simulations): #On ne met pas k_IWAE car on le fait 
+def plot_bias_likelihood(x, theta_true, noised_A, noised_b, k_max, n_simulations, dim=20): #On ne met pas k_IWAE car on le fait 
                                                                                                 ##varier dans la fonction 
 
 
@@ -878,16 +877,16 @@ def plot_bias_likelihood(x, theta_true, noised_A, noised_b, k_max, n_simulations
 
         print(f" \n Étape : {discrete_k} / {k_max} \n")
 
-        bias[0].append((log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k) - param_true)**2)
+        bias[0].append((log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simulations, dim, discrete_k) - param_true)**2)
         progress_bar.update(1)
         
-        bias[1].append((log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k) - param_true)**2)
+        bias[1].append((log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simulations, dim, discrete_k) - param_true)**2)
         progress_bar.update(1)
 
-        bias[2].append((log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k) - param_true)**2) 
+        bias[2].append((log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simulations, dim, discrete_k) - param_true)**2) 
         progress_bar.update(1)
 
-        bias[3].append((log_likelihood_IWAE(theta_true, x, noised_A, noised_b, discrete_k, n_simulations) - param_true)**2)
+        bias[3].append((log_likelihood_IWAE(theta_true, x, noised_A, noised_b, discrete_k, n_simulations, dim) - param_true)**2)
         progress_bar.update(1)
 
 
@@ -969,7 +968,6 @@ def plot_bias_gradient(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_
     # Affichage de la figure
     fig.show()
 
-
 def plot_variance_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, nb_points, num_iterations):
 
     cost_values = np.linspace(cost_max, cost_min, nb_points) #r est l'inverse de l'expected computational cost 
@@ -1027,7 +1025,6 @@ def plot_variance_likelihood(x, theta_true, noised_A, noised_b, cost_min, cost_m
     
     return
 
-
 def plot_variance_gradient(x, theta_true, noised_A, noised_b, cost_min, cost_max, n_simulations, nb_points, num_iterations):
 
     cost_values = np.linspace(cost_max, cost_min, nb_points) #r est l'inverse de l'expected computational cost 
@@ -1084,8 +1081,6 @@ def plot_variance_gradient(x, theta_true, noised_A, noised_b, cost_min, cost_max
     fig.show()
     
     return
-
-
 
 #####################################################################################################################################
 ###################################################### PARTIE DU CODE POUR SGD ######################################################
