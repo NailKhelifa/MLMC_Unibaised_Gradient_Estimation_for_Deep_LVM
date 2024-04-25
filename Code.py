@@ -174,10 +174,10 @@ def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations):
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
     
     SUMO = []
-    progress_bar = tqdm(total=n_simulations, desc=f'Progression SUMO ({discrete_k + 2} échantillons)', position=0)
+    
     # Initialize tqdm with the total number of simulations        
     if discrete_k is not None: 
-
+        progress_bar = tqdm(total=n_simulations, desc=f'Progression SUMO ({discrete_k + 2} échantillons)', position=0)
         for _ in range(n_simulations):
 
             K = discrete_k
@@ -227,19 +227,15 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, discrete
 
             SUMO.append(SUMO_K)
 
-            time.sleep(0.01)
-            progress_bar.update(1)
-
-        progress_bar.close()
     return np.mean(SUMO)
 
 def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
 
     SS = []
-    progress_bar = tqdm(total=n_simulations, desc=f'Progression ML_SS (2^{discrete_k} échantillons)', position=0)
 
     if discrete_k is not None:
 
+        progress_bar = tqdm(total=n_simulations, desc=f'Progression ML_SS (2^{discrete_k} échantillons)', position=0)
         for _ in range(n_simulations):
 
             ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
@@ -303,19 +299,15 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, discret
             ## On clacule l'estimateur de la roulette russe associé à ce delta, c'est celui qui correspond à l'estimateur RR 
             ## et on stocke le résultat dans la liste RR sur laquelle on moyennera en sortie 
             SS.append(I_0 + (Delta_theta_K/(((1-r)**(K-1))*r)))
-            time.sleep(0.01)
-            progress_bar.update(1)
 
-        progress_bar.close()
     return np.mean(SS)
 
 def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, discrete_k=None):
 
     RR = []
-    progress_bar = tqdm(total=n_simulations, desc=f'Progression ML_RR (2^{discrete_k} échantillons)', position=0)
 
     if discrete_k is not None:
-            
+        progress_bar = tqdm(total=n_simulations, desc=f'Progression ML_RR (2^{discrete_k} échantillons)', position=0)
         for _ in range(n_simulations):
 
             ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
@@ -352,7 +344,6 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, discret
         progress_bar.close()
 
     else: 
-        
         for _ in range(n_simulations):
 
             ## Étape 1 : on tire K ~ P(.) où P est la loi géométrique de paramètre 1
@@ -383,10 +374,7 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, discret
             #RR.append(I_0 + Delta_theta[0] + sum(Delta_theta(j)/((1-r)**(j-1)) for j in range(1, K+1)))
             RR.append(I_0 + Delta_theta(0) + sum(Delta_theta(j)/sum((1-r)**(i-1)*r for i in range(j, K+1)) for j in range(1, K+1)))
 
-            time.sleep(0.01)
-            progress_bar.update(1)
 
-        progress_bar.close()
 
     return np.mean(RR)
 
