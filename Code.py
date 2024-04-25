@@ -649,7 +649,7 @@ def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, dim=20, one_s
 
     return gradient_IWAE
 
-def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_shot = False):
+def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -666,14 +666,13 @@ def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_s
 
     for theta in theta_values:
 
-        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations, dim))
+        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k))
 
     gradient_SUMO = np.gradient(SUMO_values)
 
     return gradient_SUMO
 
-
-def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_shot = False):
+def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -686,13 +685,13 @@ def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_
         theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_RR sur cette plage de valeurs
-    ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations, dim) for theta in theta_values]
+    ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k) for theta in theta_values]
 
     gradient_ML_RR = np.gradient(ML_RR_values)
 
     return gradient_ML_RR
     
-def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_shot = False):
+def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False):
 
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta_true - 5  # Limite inférieure de la plage
@@ -705,7 +704,7 @@ def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, one_
         theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_SS sur cette plage de valeurs
-    ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations, dim) for theta in theta_values]
+    ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k) for theta in theta_values]
 
     gradient_ML_SS = np.gradient(ML_SS_values)
 
@@ -933,6 +932,8 @@ def plot_bias_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulations):
     progress_bar = tqdm(total=len(k_values * 4), desc='Progression', position=0)
     for discrete_k in k_values:
 
+        print(f" \n Étape : {discrete_k} / {k_max} \n")
+
         bias[0].append((grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k=discrete_k) - param_true)**2)
         progress_bar.update(1)
         
@@ -951,10 +952,10 @@ def plot_bias_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulations):
     fig = go.Figure()
 
     # Ajouter les courbes des biais
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
 
     #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
                 #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
@@ -986,15 +987,17 @@ def plot_variance_likelihood(x, theta_true, noised_A, noised_b, k_max, n_simulat
     progress_bar = tqdm(total=len(k_values * 4), desc='Progression', position=0)
     for discrete_k in k_values:
 
+        print(f" \n Étape : {discrete_k} / {k_max} \n")
+
         log_SUMO, log_ML_SS, log_ML_RR, log_IWAE = [], [], [], []
 
         for _ in range(num_iterations): 
 
-            log_SUMO.append(log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simulations))
+            log_SUMO.append(log_likelihood_SUMO(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k = discrete_k))
 
-            log_ML_SS.append(log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simulations))
+            log_ML_SS.append(log_likelihood_ML_SS(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k = discrete_k))
 
-            log_ML_RR.append(log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simulations))
+            log_ML_RR.append(log_likelihood_ML_RR(r, theta_true, x, noised_A, noised_b, n_simulations, discrete_k = discrete_k))
 
             log_IWAE.append(log_likelihood_IWAE(theta_true, x, noised_A, noised_b, discrete_k, n_simulations))
             
@@ -1053,15 +1056,17 @@ def plot_variance_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulatio
     progress_bar = tqdm(total=len(k_values * 4), desc='Progression', position=0)
     for discrete_k in k_values:
 
+        print(f" \n Étape : {discrete_k} / {k_max} \n")
+
         gradi_SUMO, gradi_ML_SS, gradi_ML_RR, gradi_IWAE = [], [], [], []
 
         for i in range(num_iterations): 
 
-            gradi_SUMO.append(grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
+            gradi_SUMO.append(grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True))
 
-            gradi_ML_SS.append(grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
+            gradi_ML_SS.append(grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True))
 
-            gradi_ML_RR.append(grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True))
+            gradi_ML_RR.append(grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True))
 
             gradi_IWAE.append(grad_IWAE(x, noised_A, noised_b, theta_true, discrete_k, n_simulations, one_shot = True))
             
@@ -1083,10 +1088,10 @@ def plot_variance_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulatio
     fig = go.Figure()
 
     # Ajouter les courbes des biais
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[0], mode='lines', name='SUMO', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[1], mode='lines', name='ML_SS', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[2], mode='lines', name='ML_RR', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=1/cost_values, y=variance[3], mode='lines', name='IWAE', line=dict(color='yellow')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[0], mode='lines', name='SUMO', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[1], mode='lines', name='ML_SS', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[2], mode='lines', name='ML_RR', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[3], mode='lines', name='IWAE', line=dict(color='yellow')))
 
     #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
                 #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
