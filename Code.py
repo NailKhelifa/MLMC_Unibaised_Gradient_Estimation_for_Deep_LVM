@@ -630,36 +630,39 @@ def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, 
 #####################################################################################################################################
 
 
-def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, dim=20, one_shot = False):
+def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, dim=20, one_shot = False, range=5):
 
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta - 5  # Limite inférieure de la plage
-    theta_max = theta + 5 # Limite supérieure de la plage
+    theta_min = theta - range  # Limite inférieure de la plage -> ajouté en argument pour limiter les calculs dans biais/variance
+    theta_max = theta + range # Limite supérieure de la plage
     step = 0.2
     num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
-    if one_shot:
-        theta_values = [theta] 
+    #if one_shot:
+    #    theta_values = [theta] 
 
     ## on caclue les valeurs de IWAE sur cette plage de valeurs
     IWAE_values = [log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations, dim) for theta in theta_values]
 
     gradient_IWAE = np.gradient(IWAE_values)
 
-    return gradient_IWAE
+    if one_shot: 
+        return (gradient_IWAE[int(2*range/2)] + gradient_IWAE[int(2*range/2)-1])/2
+    else: 
+        return gradient_IWAE
 
-def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False):
+def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False, range=5):
 
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta_true - 5  # Limite inférieure de la plage
-    theta_max = theta_true + 5 # Limite supérieure de la plage
+    theta_min = theta_true - range  # Limite inférieure de la plage
+    theta_max = theta_true + range # Limite supérieure de la plage
     step = 0.2
     num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
-    if one_shot:
-        theta_values = [theta_true] 
+    #if one_shot:
+    #    theta_values = [theta_true] 
 
     ## on caclue les valeurs de SUMO sur cette plage de valeurs
     SUMO_values = []
@@ -670,45 +673,54 @@ def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discr
 
     gradient_SUMO = np.gradient(SUMO_values)
 
-    return gradient_SUMO
+    if one_shot:
+        return (gradient_SUMO[int(2*range/2)] + gradient_SUMO[int(2*range/2)-1])/2
+    else:
+        return gradient_SUMO
 
-def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False):
+def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False, range=5):
 
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta_true - 5  # Limite inférieure de la plage
-    theta_max = theta_true + 5 # Limite supérieure de la plage
+    theta_min = theta_true - range  # Limite inférieure de la plage
+    theta_max = theta_true + range # Limite supérieure de la plage
     step = 0.2
     num_points = int((theta_max - theta_min) / step)
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
-    if one_shot:
-        theta_values = [theta_true] 
+    #if one_shot:
+    #    theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_RR sur cette plage de valeurs
     ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k) for theta in theta_values]
 
     gradient_ML_RR = np.gradient(ML_RR_values)
 
-    return gradient_ML_RR
+    if one_shot:
+        return (gradient_ML_RR[int(2*range/2)] + gradient_ML_RR[int(2*range/2)-1])/2
+    else:
+        return gradient_ML_RR
     
-def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False):
+def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False, range=5):
 
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta_true - 5  # Limite inférieure de la plage
-    theta_max = theta_true + 5 # Limite supérieure de la plage
+    theta_min = theta_true - range  # Limite inférieure de la plage
+    theta_max = theta_true + range # Limite supérieure de la plage
     step = 0.2
     num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
     theta_values = np.linspace(theta_min, theta_max, num_points)
 
-    if one_shot:
-        theta_values = [theta_true] 
+    #if one_shot:
+    #    theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_SS sur cette plage de valeurs
     ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k) for theta in theta_values]
 
     gradient_ML_SS = np.gradient(ML_SS_values)
 
-    return gradient_ML_SS
+    if one_shot:
+        return (gradient_ML_SS[int(2*range/2)] + gradient_ML_SS[int(2*range/2)-1]) / 2
+    else: 
+        return gradient_ML_SS
 
 def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, dim=20, k_IWAE = 5):
     # On fixe k_IWAE pour éviter de le passer en argument à chaque fois + methode non fixée pour éviter d'afficher 'SUMO' dans le titre
@@ -934,16 +946,20 @@ def plot_bias_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulations):
 
         print(f" \n Étape : {discrete_k} / {k_max} \n")
 
-        bias[0].append((grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k=discrete_k) - param_true)**2)
+        bias[0].append((grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k=discrete_k, one_shot = True, range=1)
+                         - param_true)**2)
         progress_bar.update(1)
         
-        bias[1].append((grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k=discrete_k) - param_true)**2)
+        bias[1].append((grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k=discrete_k, one_shot = True, range=1)
+                         - param_true)**2)
         progress_bar.update(1)
 
-        bias[2].append((grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, one_shot = True, discrete_k=discrete_k) - param_true)**2) 
+        bias[2].append((grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k=discrete_k, one_shot = True, range=1)
+                         - param_true)**2) 
         progress_bar.update(1)
 
-        bias[3].append((grad_IWAE(x, noised_A, noised_b, theta_true, discrete_k, n_simulations, one_shot = True) - param_true)**2)
+        bias[3].append((grad_IWAE(x, noised_A, noised_b, theta_true, discrete_k, n_simulations, one_shot = True, range=1)
+                         - param_true)**2)
         progress_bar.update(1)
 
     progress_bar.close()
@@ -1062,13 +1078,13 @@ def plot_variance_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulatio
 
         for i in range(num_iterations): 
 
-            gradi_SUMO.append(grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True))
+            gradi_SUMO.append(grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True, range=1))
 
-            gradi_ML_SS.append(grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True))
+            gradi_ML_SS.append(grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True, range=1))
 
-            gradi_ML_RR.append(grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True))
+            gradi_ML_RR.append(grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, discrete_k = discrete_k, one_shot = True, range=1))
 
-            gradi_IWAE.append(grad_IWAE(x, noised_A, noised_b, theta_true, discrete_k, n_simulations, one_shot = True))
+            gradi_IWAE.append(grad_IWAE(x, noised_A, noised_b, theta_true, discrete_k, n_simulations, one_shot = True, range=1))
             
         variance[0].append(np.std(gradi_SUMO) / np.sqrt(num_iterations))
         progress_bar.update(1)
