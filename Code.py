@@ -84,7 +84,7 @@ def noised_params(A, b, std_dev=0.01, dim=20):
     
     return np.array(noised_A), np.array(noised_b)
 
-def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_encoder(x_sample, A, b, dim=20) --> on a une expression explicite
+def generate_encoder(x, k, noised_A, noised_b, dim=20): ## on oublie l'idée generate_encoder(x_sample, A, b, dim=20) --> on a une expression explicite
                                         ## de A et b 
     """
     ---------------------------------------------------------------------------------------------------------------------
@@ -95,14 +95,14 @@ def generate_encoder(x, k, noised_A, noised_b): ## on oublie l'idée generate_en
     #A, b = noised_params((1/2)*np.eye(dim), (np.zeros(20) + theta_true)/2) ## on récupère les paramètres perturbés
     #Remarque : Dans l'article on ne tire pas avec theta_true mais avec theta_hat
         
-    dim = 20
-
+    #dim = 20
+    
     AX_b = np.array(np.dot(noised_A, x) + noised_b).T
 
     cov = (2/3) * np.identity(dim) ## on calcule la variance de la normale multivariée associée à l'encodeur
 
     z_sample = []
-
+    
     for _ in range(2**(k+1)):
         z_sample.append(np.random.multivariate_normal(AX_b, cov)) ## 2**(k+1) pour ne pas avoir de problèmes avec les échantillons pairs 
                                                                   ## et impairs
@@ -119,6 +119,7 @@ def weights(x, z_sample, theta, A, b, dim=20): #Question sur ce theta qui est ce
     # Parameters
     AX_b = np.dot(A, x) + b
     I = np.eye(dim)
+    
     theta_mean = theta*np.ones(dim)
     weights = []
     
@@ -153,7 +154,7 @@ def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations, dim
         progress_bar = tqdm(total=n_simulations, desc=f'Progression IWAE ({k_IWAE} échantillons)', position=0)
         for _ in range(n_simulations):
 
-            z_sample_theta, _, _ = generate_encoder(x, int(np.log(k_IWAE)/np.log(2)), noised_A, noised_b) ## attention, quand k_IWAE = 20 on en tire 2**21
+            z_sample_theta, _, _ = generate_encoder(x, int(np.log(k_IWAE)/np.log(2)), noised_A, noised_b, dim) ## attention, quand k_IWAE = 20 on en tire 2**21
                                                                                 ## Or, on en veut que k_IWAE
 
             weights_array = weights(x, z_sample_theta[:k_IWAE], theta, noised_A, noised_b, dim)
@@ -182,7 +183,7 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, dim=20, 
             K = discrete_k
 
             ## ATTENTION VERIFIER QUEL DELTAKSUMO ON PREND
-            z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+            z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b, dim) ## attention, la taille de l'échantillon est alors 2**(K+1)
                                                                                 ## ce qui est plus grand que prévu, il faut slicer correctement
 
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
@@ -210,10 +211,10 @@ def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, dim=20, 
             K = np.random.geometric(p=r)
 
             ## ATTENTION VERIFIER QUEL DELTAKSUMO ON PREND
-            z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b) ## attention, la taille de l'échantillon est alors 2**(K+1)
+            z_sample_theta, _, _ = generate_encoder(x, int(np.log(K+3)/np.log(2)), noised_A, noised_b, dim) ## attention, la taille de l'échantillon est alors 2**(K+1)
                                                                                 ## ce qui est plus grand que prévu, il faut slicer correctement
 
-            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
             I_0 = np.mean([np.log(weights_array)])
         
             ## on se donne un delta particulier, celui qui correspond par définition à la méthode SUMO
@@ -241,7 +242,7 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, dim=20,
             K = discrete_k
 
             ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
-            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b, dim)
 
             ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
@@ -276,13 +277,13 @@ def log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, dim=20,
             K = np.random.geometric(p=r)
 
             ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
-            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b, dim)
 
             ## Étape 3 : on construit les vecteurs de poids
-            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
 
-            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
-            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b, dim)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b, dim)
             #weights_array_odd = np.log(z_sample_odd_theta) # impairs
             #weights_array_even = np.log(z_sample_even_theta) # pairs
 
@@ -313,7 +314,7 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, dim=20,
             K = discrete_k
 
             ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
-            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b, dim)
 
             ## Étape 3 : on construit les vecteurs de poids
             weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
@@ -349,13 +350,13 @@ def log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, dim=20,
             K = np.random.geometric(p=r)
 
             ## Étape 2 : on tire notre échantillon ; ATTENTION, voir code de generate_encoder --> tire 2**(K+1) d'un coup
-            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b)
+            z_sample_theta, z_sample_odd_theta, z_sample_even_theta = generate_encoder(x, K, noised_A, noised_b, dim)
 
             ## Étape 3 : on construit les vecteurs de poids
-            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b)
+            weights_array = weights(x, z_sample_theta, theta, noised_A, noised_b, dim)
 
-            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b)
-            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b)
+            weights_array_odd = weights(x, z_sample_odd_theta, theta, noised_A, noised_b, dim)
+            weights_array_even = weights(x, z_sample_even_theta, theta, noised_A, noised_b, dim)
             #weights_array_odd = np.log(weights_array[1::2])
             #weights_array_even = np.log(weights_array[::2])
 
@@ -632,12 +633,18 @@ def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, 
 
 def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, dim=20, one_shot = False, range=5):
 
+    num_points = 25
+    #step = 0.2
+    #num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
+
     ## on se donne d'abord une plage de valeurs pour theta
     theta_min = theta - range  # Limite inférieure de la plage -> ajouté en argument pour limiter les calculs dans biais/variance
+    theta_values_1 = np.linspace(theta_min, theta, num_points) 
+
     theta_max = theta + range # Limite supérieure de la plage
-    step = 0.2
-    num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
-    theta_values = np.linspace(theta_min, theta_max, num_points)
+    theta_values_2 = np.linspace(theta, theta_max, num_points) 
+
+    theta_values = np.concatenate((theta_values_1, theta_values_2[1:]))
 
     #if one_shot:
     #    theta_values = [theta] 
@@ -648,18 +655,24 @@ def grad_IWAE(x, noised_A, noised_b, theta, k_IWAE, n_simulations, dim=20, one_s
     gradient_IWAE = np.gradient(IWAE_values)
 
     if one_shot: 
-        return (gradient_IWAE[int(2*range/2)] + gradient_IWAE[int(2*range/2)-1])/2
+        return gradient_IWAE[num_points-1]
     else: 
         return gradient_IWAE
 
 def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False, range=5):
 
+    num_points = 25
+    #step = 0.2
+    #num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
+
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta_true - range  # Limite inférieure de la plage
+    theta_min = theta_true - range  # Limite inférieure de la plage -> ajouté en argument pour limiter les calculs dans biais/variance
+    theta_values_1 = np.linspace(theta_min, theta_true, num_points) 
+
     theta_max = theta_true + range # Limite supérieure de la plage
-    step = 0.2
-    num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
-    theta_values = np.linspace(theta_min, theta_max, num_points)
+    theta_values_2 = np.linspace(theta_true, theta_max, num_points) 
+
+    theta_values = np.concatenate((theta_values_1, theta_values_2[1:]))
 
     #if one_shot:
     #    theta_values = [theta_true] 
@@ -674,18 +687,24 @@ def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discr
     gradient_SUMO = np.gradient(SUMO_values)
 
     if one_shot:
-        return (gradient_SUMO[int(2*range/2)] + gradient_SUMO[int(2*range/2)-1])/2
+        return gradient_SUMO[num_points-1]
     else:
         return gradient_SUMO
 
 def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False, range=5):
 
+    num_points = 25
+    #step = 0.2
+    #num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
+
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta_true - range  # Limite inférieure de la plage
+    theta_min = theta_true - range  # Limite inférieure de la plage -> ajouté en argument pour limiter les calculs dans biais/variance
+    theta_values_1 = np.linspace(theta_min, theta_true, num_points) 
+
     theta_max = theta_true + range # Limite supérieure de la plage
-    step = 0.2
-    num_points = int((theta_max - theta_min) / step)
-    theta_values = np.linspace(theta_min, theta_max, num_points)
+    theta_values_2 = np.linspace(theta_true, theta_max, num_points) 
+
+    theta_values = np.concatenate((theta_values_1, theta_values_2[1:]))
 
     #if one_shot:
     #    theta_values = [theta_true] 
@@ -696,18 +715,24 @@ def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, disc
     gradient_ML_RR = np.gradient(ML_RR_values)
 
     if one_shot:
-        return (gradient_ML_RR[int(2*range/2)] + gradient_ML_RR[int(2*range/2)-1])/2
+        return gradient_ML_RR[num_points-1]
     else:
         return gradient_ML_RR
     
 def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discrete_k=None, one_shot = False, range=5):
 
+    num_points = 25
+    #step = 0.2
+    #num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
+
     ## on se donne d'abord une plage de valeurs pour theta
-    theta_min = theta_true - range  # Limite inférieure de la plage
+    theta_min = theta_true - range  # Limite inférieure de la plage -> ajouté en argument pour limiter les calculs dans biais/variance
+    theta_values_1 = np.linspace(theta_min, theta_true, num_points) 
+
     theta_max = theta_true + range # Limite supérieure de la plage
-    step = 0.2
-    num_points = int((theta_max - theta_min) / step) # Nombre de points à générer
-    theta_values = np.linspace(theta_min, theta_max, num_points)
+    theta_values_2 = np.linspace(theta_true, theta_max, num_points) 
+
+    theta_values = np.concatenate((theta_values_1, theta_values_2[1:]))
 
     #if one_shot:
     #    theta_values = [theta_true] 
@@ -718,7 +743,7 @@ def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, disc
     gradient_ML_SS = np.gradient(ML_SS_values)
 
     if one_shot:
-        return (gradient_ML_SS[int(2*range/2)] + gradient_ML_SS[int(2*range/2)-1]) / 2
+        return gradient_ML_SS[num_points-1]
     else: 
         return gradient_ML_SS
 
