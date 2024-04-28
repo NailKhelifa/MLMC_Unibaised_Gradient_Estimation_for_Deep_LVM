@@ -119,7 +119,7 @@ def weights(x, z_sample, theta, A, b, dim=20): #Question sur ce theta qui est ce
     # Parameters
     AX_b = np.dot(A, x) + b
     I = np.eye(dim)
-    
+
     theta_mean = theta*np.ones(dim)
     weights = []
     
@@ -682,7 +682,7 @@ def grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, discr
 
     for theta in theta_values:
 
-        SUMO_values.append(log_likelihood_SUMO(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k))
+        SUMO_values.append(log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, dim, discrete_k))
 
     gradient_SUMO = np.gradient(SUMO_values)
 
@@ -710,7 +710,7 @@ def grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, disc
     #    theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_RR sur cette plage de valeurs
-    ML_RR_values = [log_likelihood_ML_RR(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k) for theta in theta_values]
+    ML_RR_values = [log_likelihood_ML_RR(r, theta, x, noised_A, noised_b, n_simulations, dim, discrete_k) for theta in theta_values]
 
     gradient_ML_RR = np.gradient(ML_RR_values)
 
@@ -738,7 +738,7 @@ def grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim=20, disc
     #    theta_values = [theta_true] 
 
     ## on caclue les valeurs de ML_SS sur cette plage de valeurs
-    ML_SS_values = [log_likelihood_ML_SS(r, x, noised_A, noised_b, theta, n_simulations, dim, discrete_k) for theta in theta_values]
+    ML_SS_values = [log_likelihood_ML_SS(r, theta, x, noised_A, noised_b, n_simulations, dim, discrete_k) for theta in theta_values]
 
     gradient_ML_SS = np.gradient(ML_SS_values)
 
