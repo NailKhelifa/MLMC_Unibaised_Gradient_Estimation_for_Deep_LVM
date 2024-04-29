@@ -766,7 +766,57 @@ def plot_gradient(r, x, noised_A, noised_b, theta_true, n_simulations, methode, 
 
         estimated_grad = grad_IWAE(x, noised_A, noised_b, theta_true, k_IWAE, n_simulations, dim)
 
-    #elif methode == 'all': 
+    elif methode == 'all': 
+
+        estimated_grad = [[], [], [], []]
+
+        methodes = ['IWAE', 'ML_SS', 'ML_RR', 'SUMO']
+
+        estimated_grad[0] = grad_IWAE(x, noised_A, noised_b, theta_true, k_IWAE, n_simulations, dim)
+
+        estimated_grad[1] = grad_ML_SS(r, x, noised_A, noised_b, theta_true, n_simulations, dim)
+
+        estimated_grad[2] = grad_ML_RR(r, x, noised_A, noised_b, theta_true, n_simulations, dim)
+
+        estimated_grad[3] = grad_SUMO(r, x, noised_A, noised_b, theta_true, n_simulations, dim)
+
+        # On récupère la plage de valeur sur laquelle on évalue
+        theta_min = theta_true - 5  # Limite inférieure de la plage
+        theta_max = theta_true + 5 # Limite supérieure de la plage
+        step = 0.2
+        num_points = int((theta_max - theta_min) / step)  # 50 points à générer
+        theta_values = np.linspace(theta_min, theta_max, num_points)
+                    
+        true_gradient_values = [true_grad(x, theta) for theta in theta_values]
+
+        # Créer la figure
+        fig = go.Figure()
+
+        # Ajouter la vraie valeur du gradient
+        fig.add_trace(go.Scatter(x=theta_values, y=true_gradient_values, mode='lines', name='True Gradient', line=dict(color='red')))
+
+         # Ajout des marqueurs pour les estimations de vraisemblance
+        for i, estimated_gradient_i in enumerate(estimated_grad):
+            fig.add_trace(go.Scatter(x=theta_values, y=estimated_gradient_i, mode='markers', name=methodes[i], marker=dict(color=['purple', 'orange', 'green', 'yellow'][i], symbol='x')))
+
+        # Ajouter la ligne verticale pour la vraie valeur de theta
+        fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(min(estimated_grad[0]), 
+                    min(estimated_grad[1]), min(estimated_grad[2]), min(estimated_grad[3]))), y1=max(max(true_gradient_values), 
+                    max(max(estimated_grad[0]), max(estimated_grad[1]), max(estimated_grad[2]), max(estimated_grad[3]))), line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
+
+        # Mise en forme de la figure
+        fig.update_layout(
+            xaxis=dict(title='Theta'),
+            yaxis=dict(title='Gradient'),
+            title=f'Comparaison des différents estimateurs du gradient',
+            legend=dict(x=0, y=1, traceorder='normal', font=dict(size=12)),
+            showlegend=True
+        )
+
+        # Affichage de la figure
+        fig.show()
+
+        return
         
     # On récupère la plage de valeur sur laquelle on évalue
     theta_min = theta_true - 5  # Limite inférieure de la plage
