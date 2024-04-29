@@ -151,7 +151,7 @@ def true_grad(x, theta):
 def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations, dim=20):
         
         IWAE = []
-        progress_bar = tqdm(total=n_simulations, desc=f'Progression IWAE ({k_IWAE} échantillons)', position=0)
+        #progress_bar = tqdm(total=n_simulations, desc=f'Progression IWAE ({k_IWAE} échantillons)', position=0)
         for _ in range(n_simulations):
 
             z_sample_theta, _, _ = generate_encoder(x, int(np.log(k_IWAE)/np.log(2)), noised_A, noised_b, dim) ## attention, quand k_IWAE = 20 on en tire 2**21
@@ -165,10 +165,10 @@ def log_likelihood_IWAE(theta, x, noised_A, noised_b, k_IWAE, n_simulations, dim
 
             IWAE.append(IWAE_K)
 
-            time.sleep(0.01)
-            progress_bar.update(1) 
+            #time.sleep(0.01)
+            #progress_bar.update(1) 
 
-        progress_bar.close()  
+        #progress_bar.close()  
         return np.mean(IWAE)
 
 def log_likelihood_SUMO(r, theta, x, noised_A, noised_b, n_simulations, dim=20, discrete_k=None):
