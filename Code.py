@@ -540,10 +540,9 @@ def plot_likelihood(r, x, noised_A, noised_b, theta_true, n_simulations, k_IWAE 
 def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, n_runs, methode, k_IWAE = 5):
     #On fixe k_IWAE = 5 dans l'argument pour éviter de le passer en argument à chaque fois
     # Définition des valeurs initiales
-    theta_min = theta_true - 5
-    theta_max = theta_true + 5
-    num_points = 30
-    theta_values = np.linspace(theta_min, theta_max, num_points)
+    theta_values = np.linspace(theta_true - 5, theta_true + 5, 30)
+    theta_min = np.min(theta_values)
+    theta_max = np.max(theta_values)
     n_runs = 5  # Nombre de lancements du programme
     true_likelihood_values = [true_likelihood(x, theta) for theta in theta_values]
 
@@ -618,7 +617,8 @@ def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, 
     plt.ylabel('Vraisemblance')
     plt.legend()
     plt.grid(True)
-    plt.xticks(np.arange(min(theta_values), max(theta_values)+1, 2))
+    plt.xticks(np.arange(theta_min, theta_max+1, 2))
+
 
 
     # Affichage de la figure
