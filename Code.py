@@ -614,11 +614,10 @@ def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, 
     # Mise en forme de la figure
     plt.title(f'Estimation de la vraisemblance par {methode} avec incertitude pour {n_runs} répétitions')
     plt.xlabel('Theta')
+    plt.xticks(theta_values, rotation=90)
     plt.ylabel('Vraisemblance')
     plt.legend()
     plt.grid(True)
-    plt.xticks(theta_values, 0.5, rotation=90)
-
 
 
     # Affichage de la figure
