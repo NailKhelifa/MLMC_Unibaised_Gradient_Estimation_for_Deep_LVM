@@ -617,7 +617,7 @@ def plot_errors_likelihood(r, theta_true, x, noised_A, noised_b, n_simulations, 
     plt.ylabel('Vraisemblance')
     plt.legend()
     plt.grid(True)
-    plt.xticks(theta_values)
+    plt.xticks(theta_values, 0.5)
 
 
 
