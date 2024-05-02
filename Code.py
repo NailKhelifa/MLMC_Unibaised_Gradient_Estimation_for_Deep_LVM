@@ -1042,10 +1042,10 @@ def plot_bias_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulations):
     fig = go.Figure()
 
     # Ajouter les courbes des biais
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(bias[0]), mode='lines', name='SUMO', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(bias[1]), mode='lines', name='ML_SS', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(bias[2]), mode='lines', name='ML_RR', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(bias[3]), mode='lines', name='IWAE', line=dict(color='yellow')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[0], mode='lines', name='SUMO', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[1], mode='lines', name='ML_SS', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[2], mode='lines', name='ML_RR', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=k_values, y=bias[3], mode='lines', name='IWAE', line=dict(color='yellow')))
 
     #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
                 #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
@@ -1178,10 +1178,10 @@ def plot_variance_gradient(x, theta_true, noised_A, noised_b, k_max, n_simulatio
     fig = go.Figure()
 
     # Ajouter les courbes des biais
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(variance[0]), mode='lines', name='SUMO', line=dict(color='green')))
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(variance[1]), mode='lines', name='ML_SS', line=dict(color='purple')))
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(variance[2]), mode='lines', name='ML_RR', line=dict(color='orange')))
-    fig.add_trace(go.Scatter(x=k_values, y=1 / np.array(variance[3]), mode='lines', name='IWAE', line=dict(color='yellow')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[0], mode='lines', name='SUMO', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[1], mode='lines', name='ML_SS', line=dict(color='purple')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[2], mode='lines', name='ML_RR', line=dict(color='orange')))
+    fig.add_trace(go.Scatter(x=k_values, y=variance[3], mode='lines', name='IWAE', line=dict(color='yellow')))
 
     #fig.add_shape(type='line', x0=theta_true, x1=theta_true, y0=min(min(true_gradient_values), min(estimated_grad)), y1=max(max(true_gradient_values), max(estimated_grad)), 
                 #line=dict(color='black', width=2, dash='dash'), name=f'theta={theta_true}')
